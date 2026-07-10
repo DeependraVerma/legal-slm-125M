@@ -1,4 +1,5 @@
 import Playground from "@/app/components/Playground";
+import ThemeToggle from "@/app/components/ThemeToggle";
 import { DonutMix, TrainingCurve } from "@/app/components/Visuals";
 import { ARCH, HERO_STATS, HF_URL, NUMBERS } from "@/app/lib/model";
 
@@ -92,15 +93,16 @@ export default function Home() {
 
 function Nav() {
   return (
-    <nav style={{ position: "sticky", top: 0, zIndex: 20, backdropFilter: "saturate(1.2) blur(8px)", background: "rgba(244,241,234,0.82)", borderBottom: "1px solid var(--line)" }}>
+    <nav style={{ position: "sticky", top: 0, zIndex: 20, backdropFilter: "saturate(1.2) blur(8px)", background: "var(--nav-bg)", borderBottom: "1px solid var(--line)" }}>
       <div className="wrap" style={{ height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <a href="#top" className="mono" style={{ fontSize: "0.8rem", letterSpacing: "0.14em", color: "var(--ink)" }}>
           LEGAL·SLM·<span style={{ color: "var(--green)" }}>125</span>
         </a>
-        <div style={{ display: "flex", gap: "1.6rem", alignItems: "center", fontSize: "0.86rem" }}>
+        <div style={{ display: "flex", gap: "1.4rem", alignItems: "center", fontSize: "0.86rem" }}>
           <a href="#play" className="link-underline">Playground</a>
-          <a href="#arch" className="link-underline">Architecture</a>
+          <a href="#arch" className="link-underline hide-sm">Architecture</a>
           <a href={HF_URL} target="_blank" rel="noopener" className="link-underline" style={{ color: "var(--green)" }}>Hugging Face ↗</a>
+          <ThemeToggle />
         </div>
       </div>
     </nav>
