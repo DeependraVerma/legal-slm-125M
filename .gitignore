@@ -1,0 +1,44 @@
+# ---- secrets (NEVER commit) ----
+.env
+.env.local
+.env.*.local
+*.pem
+
+# ---- private / mentor material (do not expose) ----
+REPLICATION_GUIDE.md
+PLAN.md
+LINKEDIN.md
+meeting_saved_new_chat.txt
+INITIAL.md
+
+# ---- large artifacts (already on Hugging Face) ----
+hf_export/
+*.safetensors
+*.bin
+*.pt
+index.json
+
+# ---- python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# ---- node / next / vercel ----
+web/node_modules/
+web/.next/
+web/out/
+web/build/
+web/.vercel/
+web/.env*
+node_modules/
+
+# ---- editor / OS / agent ----
+.claude/
+.DS_Store
+*.log
+.idea/
+.vscode/
+scratchpad/
