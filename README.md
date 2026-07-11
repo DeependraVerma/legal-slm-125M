@@ -34,10 +34,11 @@ Hugging Face and is served through a Vercel front end.
 4. [The data — and why the mix is "legal-first"](#the-data)
 5. [Replicate it, phase by phase](#replicate-it-phase-by-phase)
 6. [Model architecture](#model-architecture)
-7. [Results](#results)
-8. [Cost, honestly](#cost-honestly)
-9. [Gotchas we already paid for](#gotchas-we-already-paid-for)
-10. [Credits & license](#credits--license)
+7. [Design decisions (and why)](#design-decisions-and-why)
+8. [Results](#results)
+9. [Cost, honestly](#cost-honestly)
+10. [Gotchas we already paid for](#gotchas-we-already-paid-for)
+11. [Credits & license](#credits--license)
 
 ---
 
@@ -231,6 +232,105 @@ Maps 1:1 to `transformers.LlamaConfig`:
 | Vocab | 16,384 byte-level BPE |
 | Embeddings | tied input/output |
 | Precision | bfloat16 (weights saved fp32) |
+
+## Design decisions (and why)
+
+None of these choices are arbitrary. The guiding principle for a **125M model on a
+tight budget** is: *spend every parameter and every FLOP where it buys the most
+quality, and copy the modern, battle-tested defaults (the Llama recipe) instead of
+re-inventing them.* Here is the reasoning behind each one.
+
+### Why RoPE for positional encoding (θ = 10,000)
+Rotary Positional Embeddings encode position by **rotating** the query and key
+vectors by an angle proportional to their position, so the *relative* distance
+between two tokens falls directly out of their attention dot-product. We chose it
+over learned absolute position embeddings because:
+- **Zero extra parameters.** Learned absolute embeddings would add
+  `max_position × hidden` weights; RoPE adds none — precious for a small model.
+- **Relative positions generalize better** than absolute indices, which matters for
+  long, repetitive legal/financial documents.
+- **Graceful length extension.** RoPE can be interpolated to longer contexts later
+  (NTK / linear scaling) without retraining from scratch.
+- It is the proven standard in Llama / Mistral / Qwen. `θ = 10,000` is the classic
+  base frequency and is well-matched to a 1,024 context (the very large `θ` values
+  are only needed for 32k+ long-context models).
+
+### Why SwiGLU for the MLP activation
+SwiGLU computes `SiLU(x·W_gate) ⊙ (x·W_up)` before projecting back down — a
+**gated** MLP whose multiplicative interaction lets the network modulate its own
+signal. Shazeer's *"GLU Variants Improve Transformer"* showed it gives a
+consistently lower loss than plain ReLU/GELU MLPs at the same budget. It costs a
+third weight matrix (hence `intermediate = 3,072`, three matrices instead of two),
+but the quality-per-parameter gain is worth it and it is the Llama-family default.
+
+### Why a 16,384-token vocabulary
+- **Parameter economics.** The embedding table (tied to the LM head) is
+  `vocab × hidden = 16,384 × 768 ≈ 12.6M` params — already ~10% of the whole model.
+  A 32k–128k vocab would let the embeddings *dominate* a 125M budget, starving the
+  actual transformer layers. A lean 16k keeps parameters in the layers where the
+  reasoning happens.
+- **A power of two (2¹⁴)** aligns cleanly with GPU matmul tiling.
+- **Byte-level BPE means zero out-of-vocabulary** — every byte is representable, so
+  the odd characters, `§` symbols, citations, and numbers in legal/financial text
+  never break.
+- **Trained on our own corpus**, so frequent domain terms (`plaintiff`,
+  `pursuant`, `10-K`) become single tokens → fewer tokens per document → cheaper
+  training and more effective context.
+- Trade-off: a smaller vocab means slightly *more* tokens per document, but for a
+  small model the cheaper embeddings and better parameter allocation win.
+
+### Why a 1,024-token context length
+- **Attention is O(sequence²).** 1,024 keeps compute and memory modest — decisive
+  when you are GPU-cost-constrained.
+- For *pretraining a base model*, 1,024-token windows are more than enough to learn
+  syntax, local coherence, and domain style; longer context gives diminishing
+  returns at 125M while multiplying cost.
+- We **pack** documents into contiguous 1,024-token windows (separated by `<|eos|>`),
+  so no compute is wasted on padding.
+- It can be **extended later** via RoPE interpolation if a long-context variant is
+  ever needed — the choice is not permanent.
+
+### Why 12 layers / 768 dim / 12 heads (head dim 64)
+- This is the **canonical "base" transformer shape** (GPT-2 / BERT-base). It reliably
+  lands at ~125.8M params with tied embeddings and is one of the most studied,
+  stable-to-train configurations that exists — so results are comparable to the
+  literature and we avoid hand-tuning the aspect ratio.
+- **Depth vs. width:** 12 layers × 768 dims is a proven balance. Going deeper-and-
+  thinner can help reasoning but is harder to train stably at small scale; going
+  wider-and-shallower under-uses depth. 12/768 is the sweet spot.
+- **768 ÷ 12 = 64**, the standard head dimension that flash-attention kernels are
+  optimized for — expressive enough per head, cheap enough to compute.
+- We did not invent these numbers; we adopted the known-good ratio so the parameter
+  budget goes into a shape that is guaranteed to train well.
+
+### Why full Multi-Head Attention (not GQA / MQA)
+We set `num_key_value_heads == num_attention_heads` (= 12), i.e. **every head keeps
+its own K and V**. Grouped-Query (GQA) and Multi-Query (MQA) attention *share* K/V
+across heads to shrink the KV-cache and speed up autoregressive decoding — but that
+is an **inference-memory optimization that trades away a little quality**. At 125M
+params with a 1,024 context the KV-cache is tiny and inference is already cheap, so
+there is nothing to buy: full MHA gives maximum representational capacity per head.
+GQA/MQA earn their keep at 7B+ scale and long context; here it would be premature
+optimization.
+
+### Why bfloat16 compute but fp32 saved weights
+- **bfloat16** keeps fp32's full 8-bit exponent (same dynamic range) with fewer
+  mantissa bits, so — unlike fp16 — it needs **no loss-scaling** and won't
+  overflow/underflow during training, while halving memory bandwidth and doubling
+  throughput on H100 tensor cores. It is the modern default for LLM pretraining.
+- We **compute** in bf16 (autocast) but keep the master weights and optimizer state
+  in **fp32**, so the tiny gradient updates accumulate with full numerical precision.
+- We **save** the final weights in **fp32** (a lossless ~480MB `safetensors`) so the
+  published artifact is the highest-fidelity copy. Anyone downstream can downcast to
+  bf16/fp16 or quantize to int8/int4 as they wish — you can always *lose* precision
+  later, but you can never recover it if you ship a lossy checkpoint.
+
+### Two more Llama-recipe choices
+- **RMSNorm** (instead of LayerNorm) drops the mean-subtraction and bias term for a
+  cheaper, equally effective normalization — fewer ops, one less thing to learn.
+- **Tied embeddings** share the input embedding matrix with the output LM head,
+  saving ~12.6M parameters (that ~10% of the model) with no measurable quality loss
+  at this scale — parameters better spent inside the layers.
 
 ## Results
 
