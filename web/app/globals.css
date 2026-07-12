@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 /* ============================================================
-   legal-slm-125 — design tokens (warm parchment editorial)
+   legal-slm-125 design tokens (warm parchment editorial)
    ============================================================ */
 :root {
-  --paper:      #f4f1ea;   /* page background — warm cream */
+  --paper:      #f4f1ea;   /* page background, warm cream */
   --paper-2:    #faf8f2;   /* raised surfaces / cards */
   --paper-3:    #efeadd;   /* sunken wells */
-  --ink:        #1a1712;   /* primary text — warm near-black */
+  --ink:        #1a1712;   /* primary text, warm near-black */
   --ink-soft:   #423b30;
   --muted:      #6b6357;   /* secondary text */
   --faint:      #8f8676;   /* tertiary / captions */
   --line:       #e2dbcb;   /* hairlines */
   --line-2:     #d6cdb8;
-  --green:      #2e5a43;   /* primary accent — ledger green */
+  --green:      #2e5a43;   /* primary accent, ledger green */
   --green-deep: #234634;
-  --brass:      #a8814a;   /* secondary accent — muted brass */
+  --brass:      #a8814a;   /* secondary accent, muted brass */
   --brass-soft: #c2a06a;
   --slate:      #74705f;   /* third data tone */
 
@@ -31,7 +31,7 @@
   --maxw: 68rem;
 }
 
-/* ---- dark theme: "library at night" — warm espresso complement ---- */
+/* ---- dark theme: "library at night", warm espresso complement ---- */
 :root[data-theme="dark"] {
   --paper:      #17140e;   /* warm espresso black */
   --paper-2:    #201b13;   /* raised surfaces */

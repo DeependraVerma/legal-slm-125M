@@ -1,5 +1,5 @@
 // Browser-only in-browser inference via transformers.js (@huggingface/transformers).
-// The model runs entirely on the visitor's device — no server, no Modal, $0.
+// The model runs entirely on the visitor's device (no server).
 // transformers.js is imported lazily so it never touches SSR or the initial bundle.
 
 const ONNX_REPO = "jonam-ai/legal-slm-125m-sft-onnx";

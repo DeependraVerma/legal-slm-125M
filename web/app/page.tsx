@@ -1,6 +1,6 @@
 import Chat from "@/app/components/Chat";
+import Nav from "@/app/components/Nav";
 import Playground from "@/app/components/Playground";
-import ThemeToggle from "@/app/components/ThemeToggle";
 import { DonutMix, TrainingCurve } from "@/app/components/Visuals";
 import { ARCH, HERO_STATS, HF_SFT_URL, HF_URL, NUMBERS, SFT_STATS } from "@/app/lib/model";
 
@@ -11,9 +11,9 @@ export default function Home() {
       <Hero />
       <Section n="01" eyebrow="Playground" title="Complete the passage">
         <p style={lead}>
-          Give it the opening of a brief, a filing, or an opinion — then watch the model
-          continue it, one token at a time. The weights below are the real 125M model,
-          running live on a CPU that scales to zero.
+          Give it the opening of a brief, a filing, or an opinion, then watch the model
+          continue it, one token at a time. These are the real 125M model weights,
+          generating live.
         </p>
         <div style={{ marginTop: "2rem" }}>
           <Playground />
@@ -23,11 +23,11 @@ export default function Home() {
       <Section n="02" eyebrow="Chat" title="Now ask it a question">
         <p style={lead}>
           Fine-tuned on 5,846 grounded legal &amp; financial Q&amp;A pairs, the same 125M
-          model stops rambling and starts <em>answering</em>. This is a separate model —{" "}
+          model stops rambling and starts <em>answering</em>. It is a separate model,{" "}
           <a href={HF_SFT_URL} target="_blank" rel="noopener" className="link-underline" style={{ color: "var(--green)" }}>
             legal-slm-125m-sft ↗
-          </a>{" "}
-          — served live, streaming its reply token by token.
+          </a>
+          , that streams its reply as you watch.
         </p>
         <div style={{ marginTop: "1.5rem", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1px", background: "var(--line)", border: "1px solid var(--line)", borderRadius: 5, overflow: "hidden", marginBottom: "1.75rem" }}>
           {SFT_STATS.map((s) => (
@@ -92,7 +92,7 @@ export default function Home() {
       <Section n="07" eyebrow="Caveats" title="What this is, and is not">
         <div style={{ display: "grid", gap: "1.1rem", maxWidth: "46rem" }}>
           <Caveat>
-            It is a <b>base (pretrained) model</b> — a next-token predictor. It has never
+            It is a <b>base (pretrained) model</b>, a next-token predictor. It has never
             been instruction-tuned, aligned, or shown a single question-answer pair.
           </Caveat>
           <Caveat>
@@ -101,7 +101,7 @@ export default function Home() {
           </Caveat>
           <Caveat>
             English only, 1,024-token context, 125M parameters. It is a study in doing a
-            lot with very little — not a product, and never legal or financial advice.
+            lot with very little. It is not a product, and never legal or financial advice.
           </Caveat>
         </div>
       </Section>
@@ -112,25 +112,6 @@ export default function Home() {
 }
 
 /* ---------------- sections ---------------- */
-
-function Nav() {
-  return (
-    <nav style={{ position: "sticky", top: 0, zIndex: 20, backdropFilter: "saturate(1.2) blur(8px)", background: "var(--nav-bg)", borderBottom: "1px solid var(--line)" }}>
-      <div className="wrap" style={{ height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <a href="#top" className="mono" style={{ fontSize: "0.8rem", letterSpacing: "0.14em", color: "var(--ink)" }}>
-          LEGAL·SLM·<span style={{ color: "var(--green)" }}>125</span>
-        </a>
-        <div style={{ display: "flex", gap: "1.4rem", alignItems: "center", fontSize: "0.86rem" }}>
-          <a href="#play" className="link-underline hide-sm">Playground</a>
-          <a href="#chat" className="link-underline" style={{ color: "var(--green)" }}>Chat</a>
-          <a href="#arch" className="link-underline hide-sm">Architecture</a>
-          <a href={HF_URL} target="_blank" rel="noopener" className="link-underline hide-sm">Hugging Face ↗</a>
-          <ThemeToggle />
-        </div>
-      </div>
-    </nav>
-  );
-}
 
 function Hero() {
   return (
@@ -143,7 +124,7 @@ function Hero() {
           </h1>
           <p style={{ marginTop: "1.75rem", maxWidth: "44ch", fontSize: "1.1rem", color: "var(--muted)", lineHeight: 1.6 }}>
             Trained from a random initialization on <b style={{ color: "var(--ink-soft)", fontWeight: 500 }}>2.04&nbsp;billion tokens</b> of US
-            case law, SEC filings and educational web text — then asked to keep writing.
+            case law, SEC filings and educational web text, then asked to keep writing.
           </p>
           <div style={{ marginTop: "2.25rem", display: "flex", gap: "0.9rem", flexWrap: "wrap", alignItems: "center" }}>
             <a href="#play" className="btn-primary" style={{ display: "inline-block" }}>Try it live ↓</a>

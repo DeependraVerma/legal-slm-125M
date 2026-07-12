@@ -13,7 +13,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<Status>("idle");
-  const [mode, setMode] = useState<Mode>("server");
+  const [mode, setMode] = useState<Mode>("browser");
   const [dlProgress, setDlProgress] = useState(0);
   const [loadingModel, setLoadingModel] = useState(false);
   const [error, setError] = useState("");
@@ -54,7 +54,7 @@ export default function Chat() {
         setStatus("streaming");
         await generateChat(message, appendToken);
       } catch {
-        setError("The in-browser model couldn't load or run — your browser may not support WebAssembly for this. Try Server mode.");
+        setError("The in-browser model couldn't load. Your browser may not support it. Try Server mode instead.");
         dropEmptyAssistant();
       } finally {
         setStatus("idle");
@@ -98,7 +98,7 @@ export default function Chat() {
       }
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
-        setError("Could not reach the server — it may be waking up. Try again, or switch to In-browser.");
+        setError("Couldn't reach the server. Try again in a moment, or switch to In-browser.");
         dropEmptyAssistant();
       }
     } finally {
@@ -131,9 +131,7 @@ export default function Chat() {
         </div>
       </div>
       <p className="mono" style={{ fontSize: "0.7rem", color: "var(--faint)", margin: "0 0 1rem" }}>
-        {mode === "server"
-          ? "running on a scale-to-zero server (Modal)"
-          : "runs entirely in your browser — no server, ~140MB one-time download, then $0 forever"}
+        {mode === "server" ? "runs on a hosted server" : "runs entirely in your browser"}
       </p>
 
       {/* messages */}
@@ -189,7 +187,7 @@ export default function Chat() {
       </form>
 
       <p style={{ marginTop: "0.9rem", fontSize: "0.8rem", color: "var(--faint)", lineHeight: 1.6 }}>
-        A 125M fine-tuned model — it answers one question at a time and will confidently
+        A 125M fine-tuned model. It answers one question at a time and will confidently
         invent case names and figures. Not legal or financial advice.
       </p>
     </div>

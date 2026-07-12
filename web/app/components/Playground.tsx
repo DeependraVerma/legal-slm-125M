@@ -72,7 +72,7 @@ export default function Playground() {
       if ((e as Error).name === "AbortError") {
         setStatus("done");
       } else {
-        setError("Could not reach the model. It may be waking up — try again in a moment.");
+        setError("Could not reach the model. Please try again in a moment.");
         setStatus("error");
       }
     }
