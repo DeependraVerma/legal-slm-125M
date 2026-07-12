@@ -77,8 +77,9 @@ so any phase can be re-run or resumed independently.
 | `dedup.py` | Hash / shingle / n-gram helpers for dedup + decontamination |
 | `modal_app.py` | Modal app: images, Volume, and one function per phase (0–4, plus pretrain & evaluate) |
 | `train.py` | Standalone DDP training loop, launched under `torchrun` on 8×H100 |
-| `inference.py` | Modal scale-to-zero CPU endpoint that streams generations (Phase 7 backend) |
-| `web/` | Next.js 16 front end deployed to Vercel — the live playground |
+| `inference.py` | Modal scale-to-zero CPU endpoint that streams base-model completions (Phase 7) |
+| `inference_chat.py` | Modal scale-to-zero CPU endpoint that streams the fine-tuned model's chat replies |
+| `web/` | Next.js 16 front end on Vercel — the live playground **and chat** |
 | `finetune.py` | Phase 8 dataset pipeline: Gemini Q&A synthesis, LLM-judge, dedup, tokenize |
 | `train_sft.py` | Phase 8 supervised fine-tuning loop (single GPU, full FT, loss-masked) |
 
@@ -373,6 +374,8 @@ into a small instruction-following assistant via **supervised fine-tuning (SFT)*
 on a synthetic legal/financial Q&A dataset.
 
 - 🤗 **Instruct model:** https://huggingface.co/jonam-ai/legal-slm-125m-sft
+- 💬 **Live chat:** the "Chat" section of https://legal-slm-125.vercel.app (streams the
+  fine-tuned model via `inference_chat.py`, a second scale-to-zero Modal endpoint)
 
 ### Why fine-tune on a *different* base model
 We fine-tune on top of **`thesreedath/slm-125m-base`** — a peer's 125M model
