@@ -374,8 +374,15 @@ into a small instruction-following assistant via **supervised fine-tuning (SFT)*
 on a synthetic legal/financial Q&A dataset.
 
 - 🤗 **Instruct model:** https://huggingface.co/jonam-ai/legal-slm-125m-sft
-- 💬 **Live chat:** the "Chat" section of https://legal-slm-125.vercel.app (streams the
-  fine-tuned model via `inference_chat.py`, a second scale-to-zero Modal endpoint)
+- 💬 **Live chat:** the "Chat" section of https://legal-slm-125.vercel.app — with a
+  **Server / In-browser** toggle:
+  - **Server** streams the fine-tuned model via `inference_chat.py` (scale-to-zero Modal).
+  - **⚡ In-browser** runs the model **entirely on the visitor's device** via
+    [transformers.js](https://github.com/huggingface/transformers.js) — an int8 ONNX
+    export ([`jonam-ai/legal-slm-125m-sft-onnx`](https://huggingface.co/jonam-ai/legal-slm-125m-sft-onnx),
+    ~140MB, cached after first load). **No backend, $0 forever.** This is the only way
+    to serve a custom model with zero server cost — HF's free serverless API doesn't
+    host arbitrary models, and HF Docker Spaces now require a paid PRO plan.
 
 ### Why fine-tune on a *different* base model
 We fine-tune on top of **`thesreedath/slm-125m-base`** — a peer's 125M model

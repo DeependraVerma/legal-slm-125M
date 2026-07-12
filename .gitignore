@@ -14,7 +14,10 @@ INITIAL.md
 # ---- large artifacts (already on Hugging Face) ----
 hf_export/
 sft_export/
+onnx_sft/
+onnx_upload_sft/
 *.safetensors
+*.onnx
 *.bin
 *.pt
 index.json
