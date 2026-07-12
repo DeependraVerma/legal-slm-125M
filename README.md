@@ -1,14 +1,19 @@
 # legal-slm-125 — a 125M legal & financial language model, from scratch
 
 Build a 125-million-parameter Llama-style language model **from a random
-initialization** — data pipeline, tokenizer, pretraining, evaluation, and a live
-web demo — for legal and financial English. Everything is streamed, cleaned, and
-trained reproducibly on [Modal](https://modal.com); the finished model lives on
-Hugging Face and is served through a Vercel front end.
+initialization** — data pipeline, tokenizer, pretraining, evaluation, a live web
+demo, and finally **supervised fine-tuning into a Q&A assistant** — for legal and
+financial English. Everything is streamed, cleaned, and trained reproducibly on
+[Modal](https://modal.com); the finished models live on Hugging Face and one is
+served through a Vercel front end.
 
-- 🤗 **Model:** https://huggingface.co/jonam-ai/slm-125m-base
+The full arc: **random weights → a base model that writes fluent legal/financial
+text → a fine-tuned model that answers questions about it.**
+
+- 🤗 **Base model:** https://huggingface.co/jonam-ai/slm-125m-base
+- 🤗 **Fine-tuned (instruct) model:** https://huggingface.co/jonam-ai/legal-slm-125m-sft
 - 🌐 **Live demo:** https://legal-slm-125.vercel.app
-- 📊 **Held-out perplexity:** **9.13** on a 20.6M-token validation set
+- 📊 **Held-out perplexity:** **9.13** (base) · **SFT val loss 2.06**
 
 | | |
 |---|---|
@@ -19,10 +24,10 @@ Hugging Face and is served through a Vercel front end.
 | Pretraining | 2 epochs (7,778 steps) on 8×H100, bfloat16 |
 | Held-out perplexity | 9.13 (val loss 2.211) |
 
-> **This is a base (pretrained) model.** It continues text; it is not
-> instruction-tuned and does not answer questions. It will confidently fabricate
-> case names, citations, and figures. **Never** use its output as legal,
-> financial, or factual advice.
+> **Two models, two behaviors.** The **base** model continues text; it does not
+> answer questions. The **fine-tuned** model (Phase 8) answers questions but, at
+> 125M parameters, still fabricates case names, citations, and figures. **Never**
+> use either model's output as legal, financial, or factual advice.
 
 ---
 
@@ -36,9 +41,10 @@ Hugging Face and is served through a Vercel front end.
 6. [Model architecture](#model-architecture)
 7. [Design decisions (and why)](#design-decisions-and-why)
 8. [Results](#results)
-9. [Cost, honestly](#cost-honestly)
-10. [Gotchas we already paid for](#gotchas-we-already-paid-for)
-11. [Credits & license](#credits--license)
+9. [Fine-tuning: from base model to Q&A assistant](#fine-tuning-from-base-model-to-qa-assistant)
+10. [Cost, honestly](#cost-honestly)
+11. [Gotchas we already paid for](#gotchas-we-already-paid-for)
+12. [Credits & license](#credits--license)
 
 ---
 
@@ -56,6 +62,7 @@ Phase 4  tokenize + pack   →  uint16 1024-token windows, 99/1 split  → /data
 Phase 5  pretrain          →  8×H100 DDP, 2 epochs                   → /data/checkpoints
 Phase 6  evaluate + push   →  full-val perplexity + upload to HF
 Phase 7  serve             →  Modal inference endpoint + Vercel site
+Phase 8  fine-tune (SFT)   →  Gemini Q&A dataset → 1×L4 fine-tune     → /data/sft
 ```
 
 All durable artifacts live on one Modal Volume (`slm-125m`) mounted at `/data`,
@@ -72,13 +79,18 @@ so any phase can be re-run or resumed independently.
 | `train.py` | Standalone DDP training loop, launched under `torchrun` on 8×H100 |
 | `inference.py` | Modal scale-to-zero CPU endpoint that streams generations (Phase 7 backend) |
 | `web/` | Next.js 16 front end deployed to Vercel — the live playground |
+| `finetune.py` | Phase 8 dataset pipeline: Gemini Q&A synthesis, LLM-judge, dedup, tokenize |
+| `train_sft.py` | Phase 8 supervised fine-tuning loop (single GPU, full FT, loss-masked) |
 
 ## Prerequisites
 
 1. **Modal** — `pip install modal && modal token new` (free tier includes monthly
    compute credits). The GPU phase needs H100 access on your Modal plan.
 2. **Hugging Face** — a token with the **write** role
-   (huggingface.co/settings/tokens); only needed to push the model in Phase 6.
+   (huggingface.co/settings/tokens); needed to push the models in Phases 6 and 8.
+   For fine-tuning (Phase 8) you also need a **Google Gemini API key**
+   (aistudio.google.com), stored as a Modal secret:
+   `modal secret create gemini-api GEMINI_API_KEY=...`.
 3. Copy the env template and fill in your own values (never commit it):
    ```bash
    cp .env.local.example .env.local
@@ -217,6 +229,17 @@ vercel deploy --prod                        # ship to Vercel
 token-by-token streaming; it scales to zero when idle (≈ $0). The Next.js site
 calls it and renders the completion live.
 
+### Phase 8 — fine-tune into a Q&A assistant (Gemini + 1×L4)
+```bash
+modal run finetune.py::pilot          # 20-passage sanity + live cost projection
+modal run finetune.py::build          # generate + LLM-judge the full Q&A set
+modal run finetune.py::curate_run     # dedup + format + tokenize (mentor tokenizer)
+modal run train_sft.py::run --epochs 2  # supervised fine-tune on 1×L4
+```
+This turns the base model into one that *answers* questions. It is a full stage in
+its own right — see **[Fine-tuning: from base model to Q&A assistant](#fine-tuning-from-base-model-to-qa-assistant)**
+below for the pipeline, dataset, and design decisions.
+
 ## Model architecture
 
 Maps 1:1 to `transformers.LlamaConfig`:
@@ -343,6 +366,127 @@ Held-out perplexity over training (20.6M-token validation set):
 Sample completions are coherent, on-domain legal/financial prose (see the live
 demo) — while, being a base model, inventing all specifics.
 
+## Fine-tuning: from base model to Q&A assistant
+
+The base model *continues* text; it cannot *answer* a question. Phase 8 turns it
+into a small instruction-following assistant via **supervised fine-tuning (SFT)**
+on a synthetic legal/financial Q&A dataset.
+
+- 🤗 **Instruct model:** https://huggingface.co/jonam-ai/legal-slm-125m-sft
+
+### Why fine-tune on a *different* base model
+We fine-tune on top of **`thesreedath/slm-125m-base`** — a peer's 125M model
+pretrained for **10 epochs** on the same data — rather than our own 2-epoch base.
+A better-trained base is a better starting point, and it is architecturally
+identical (Llama, 12L/768d, vocab 16,384), so nothing downstream changes.
+
+**The tokenizer subtlety that matters most:** a model's embedding rows are bound to
+the exact token IDs of the tokenizer it trained with. That base has its *own*
+16,384-token BPE — same size and same special tokens as ours, but a
+separately-trained BPE maps text to **different IDs**. So the fine-tuning data
+**must be tokenized with that model's `tokenizer.json`**, not ours. We load and
+reuse it; we do **not** train a new tokenizer.
+
+### Building the Q&A dataset (teacher-LLM distillation)
+File: `finetune.py`. We synthesize grounded Q&A from the cleaned corpus with a
+**teacher LLM** (Google Gemini), then filter hard with a second model as an
+**LLM-as-judge**:
+
+```
+chunk_corpus   split the corpus into ~800-token grounded passages
+generate       Gemini Flash-Lite writes SELF-CONTAINED Q&A answerable ONLY from the
+               passage — balanced across task types (qa / extraction / summarization
+               / rewrite) and difficulty (easy → hard)
+judge          Gemini Flash scores each pair: grounded AND correct AND
+               self-contained?  keep only score ≥ 4/5     (~78% pass)
+curate         exact + MinHash-LSH near-dup removal; train/val split (disjoint ⇒
+               decontaminated by construction); chat-JSONL; tokenize with the
+               MENTOR tokenizer, loss-masked on the answer only
+```
+
+The teacher is told to **answer only from the passage** — if a question can't be
+answered from it, don't invent one — which is what keeps answers grounded rather
+than hallucinated. Questions are forced to be self-contained (name the entity, not
+"this document") so the data trains a **closed-book** assistant that matches how
+the model is actually served.
+
+Realized dataset:
+
+| | |
+|---|---|
+| Generated → judged → deduped | 7,495 → 5,856 → **5,846** final pairs |
+| Train / val | 5,554 / 292 |
+| Source mix | case-law 45% · SEC 45% · web 10% |
+| Task mix | qa 42% · extraction 21% · summarization 20% · rewrite 17% |
+| Difficulty | easy 26% · medium 44% · hard 30% |
+| Teacher / judge | `gemini-flash-lite` / `gemini-flash` |
+
+### The SFT training
+File: `train_sft.py`. **Single GPU, full fine-tune, no DDP / `torch.compile`** — the
+workload is tiny, and multi-GPU would only re-introduce the fragility from Phase 5
+for zero speedup.
+
+| | |
+|---|---|
+| Base | `thesreedath/slm-125m-base` |
+| Method | **full fine-tune** (not LoRA) |
+| Hardware | **1 × L4** |
+| Epochs | 2 |
+| LR | 3e-5, cosine decay, 3% warmup |
+| Precision | bf16 compute, fp32 master weights |
+| Loss | on **answer tokens only** (prompt masked to `-100`) |
+| Tokens seen | ~1.0M |
+| Time | ~80 seconds |
+| Val loss | 4.27 → **2.06** |
+
+**Chat format** — the tokenizer has role tokens but no chat template, so we define one:
+```
+<|bos|><|system|>{system}<|user|>{question}<|assistant|>{answer}<|eos|>
+```
+Only the `{answer}…<|eos|>` span contributes to the loss, so the model learns to
+*produce* answers rather than echo prompts.
+
+**Result:** the model now responds in-format instead of rambling. Asked *"In a
+breach of contract claim, what must the plaintiff prove?"* it returns a numbered
+list of elements. Factual precision is bounded by 125M capacity — it learns the
+*shape* of a grounded answer and will still invent specifics.
+
+### Fine-tuning design decisions
+- **Full fine-tune, not LoRA.** LoRA exists to save memory on billion-parameter
+  models; at 125M, full FT is cheap (~$0.05) and higher quality.
+- **Single GPU, no DDP.** ~1M tokens over 2 epochs is seconds of compute; multi-GPU
+  adds coordination overhead and the `torch.compile`+NCCL failure modes for nothing.
+- **2 epochs.** Validation loss bottomed near epoch 1 (2.045) and *rose* by epoch 3
+  (2.11) while train loss kept falling — classic mild overfitting. 2 epochs
+  (val 2.06) is the sweet spot.
+- **LLM-as-judge.** A teacher can hallucinate; a second strong model that keeps only
+  grounded, correct, self-contained pairs removes ~22% of raw output. Quality over
+  quantity — cf. LIMA: 1,000 excellent pairs beat 100,000 noisy ones.
+- **~5,000 pairs.** Enough to imprint Q&A behavior on a small model without
+  overfitting; a giant noisy set would just be memorized.
+
+### Using the fine-tuned model
+```python
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+tok = AutoTokenizer.from_pretrained("jonam-ai/legal-slm-125m-sft")
+model = AutoModelForCausalLM.from_pretrained("jonam-ai/legal-slm-125m-sft", torch_dtype=torch.bfloat16)
+
+system = "You are a knowledgeable legal and financial assistant. Answer accurately and concisely."
+question = "What is the purpose of a Form 10-K filing?"
+
+def sid(t): return tok.convert_tokens_to_ids(t)
+ids = (tok("<|bos|>", add_special_tokens=False)["input_ids"]
+       + [sid("<|system|>")] + tok(system, add_special_tokens=False)["input_ids"]
+       + [sid("<|user|>")]   + tok(question, add_special_tokens=False)["input_ids"]
+       + [sid("<|assistant|>")])
+out = model.generate(torch.tensor([ids]), max_new_tokens=120, do_sample=True,
+                     temperature=0.7, top_p=0.9, eos_token_id=sid("<|eos|>"),
+                     pad_token_id=sid("<|pad|>"))
+print(tok.decode(out[0][len(ids):], skip_special_tokens=True))
+```
+
 ## Cost, honestly
 
 This project is *not* free — the GPU pretraining is the real expense, and being
@@ -350,16 +494,19 @@ honest about it helps you budget:
 
 | Resource | Cost | What |
 |---|---|---|
-| H100 | ~$36 | 2-epoch pretraining (plus some avoidable debugging waste) |
-| CPU | ~$2 | Phases 0–4 data pipeline |
-| L4 | ~$0.07 | Phase 6 evaluation |
-| Deployed inference | ~$0.06 | Phase 7 endpoint (scale-to-zero) |
-| **Total usage** | **~$39** | on Modal's Starter plan |
+| H100 (Modal) | ~$36 | Phase 5: 2-epoch pretraining (plus some avoidable debugging waste) |
+| CPU (Modal) | ~$2 | Phases 0–4 data pipeline |
+| L4 (Modal) | ~$0.07 | Phase 6 evaluation |
+| Deployed inference (Modal) | ~$0.06 | Phase 7 endpoint (scale-to-zero) |
+| Gemini API | ~$2.0 | Phase 8: Q&A synthesis (~$0.45) + LLM-judge (~$1.54) |
+| L4 (Modal) | ~$0.05 | Phase 8: 2-epoch fine-tune |
+| **Total usage** | **~$41** | Modal (~$39) + Gemini (~$2) |
 
-Modal's free tier (~$30/month credits) absorbs most of it; out-of-pocket for this
-run was ~$9. **The single biggest lever is the pretraining GPU spend** — fewer
-epochs or a single-H100 run cost proportionally less. Everything up to Phase 5 is
-cents.
+Modal's free tier (~$30/month credits) absorbs most of the Modal spend; out-of-pocket
+for the Modal side was ~$9, and the fine-tuning stage (Phases 8) added only ~$2 of
+Gemini + $0.05 of GPU. **The single biggest lever is the pretraining GPU spend** —
+fewer epochs or a single-H100 run cost proportionally less. Everything except Phase
+5 is cents.
 
 ## Gotchas we already paid for
 
@@ -384,8 +531,10 @@ cents.
 ## Credits & license
 
 Built from scratch as a hands-on study in end-to-end language-model engineering:
-data → tokenizer → pretraining → evaluation → deployment. Inspired by the Vizuara
-AI Lab "SLM from scratch" session.
+data → tokenizer → pretraining → evaluation → deployment → **fine-tuning**. Inspired
+by the Vizuara AI Lab "SLM from scratch" session. Phase 8 fine-tunes on top of the
+peer base model [`thesreedath/slm-125m-base`](https://huggingface.co/thesreedath/slm-125m-base)
+and distills its Q&A dataset from a Google Gemini teacher.
 
 Code is released under the [MIT License](LICENSE). The model weights on Hugging
 Face carry their own card and disclaimers. This is a research artifact, **not**

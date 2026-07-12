@@ -13,6 +13,7 @@ INITIAL.md
 
 # ---- large artifacts (already on Hugging Face) ----
 hf_export/
+sft_export/
 *.safetensors
 *.bin
 *.pt
