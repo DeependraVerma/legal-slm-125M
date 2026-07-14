@@ -380,7 +380,8 @@ on a synthetic legal/financial Q&A dataset.
   - **⚡ In-browser** runs the model **entirely on the visitor's device** via
     [transformers.js](https://github.com/huggingface/transformers.js) — an int8 ONNX
     export ([`jonam-ai/legal-slm-125m-sft-onnx`](https://huggingface.co/jonam-ai/legal-slm-125m-sft-onnx),
-    ~140MB, cached after first load). **No backend, $0 forever.** This is the only way
+    ~140MB, cached after first load; the int8 step costs ~38% on held-out perplexity
+    versus fp32, a deliberate size-for-quality trade). **No backend, $0 forever.** This is the only way
     to serve a custom model with zero server cost — HF's free serverless API doesn't
     host arbitrary models, and HF Docker Spaces now require a paid PRO plan.
 
