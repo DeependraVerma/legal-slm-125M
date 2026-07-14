@@ -8,6 +8,8 @@
 REPLICATION_GUIDE.md
 PLAN.md
 LINKEDIN.md
+BLOG.md
+PROMPT.md
 meeting_saved_new_chat.txt
 INITIAL.md
 
@@ -21,6 +23,7 @@ onnx_upload_sft/
 *.bin
 *.pt
 index.json
+fig
 
 # ---- python ----
 __pycache__/
