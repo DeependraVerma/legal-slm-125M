@@ -1,12 +1,15 @@
 // Single source of truth for the site's model facts.
 
+// TODO: run `modal deploy` under your own Modal account and set
+// NEXT_PUBLIC_INFERENCE_URL / NEXT_PUBLIC_CHAT_URL (or replace the
+// fallbacks below) with your own *.modal.run URLs.
 export const INFERENCE_URL =
   process.env.NEXT_PUBLIC_INFERENCE_URL ??
-  "https://mcrao--legal-slm-125-inference-slm-web.modal.run";
+  "https://REPLACE_WITH_YOUR_MODAL_ACCOUNT--legal-slm-125-inference-slm-web.modal.run";
 
 export const CHAT_URL =
   process.env.NEXT_PUBLIC_CHAT_URL ??
-  "https://mcrao--legal-slm-125m-chat-inference-chat-web.modal.run";
+  "https://REPLACE_WITH_YOUR_MODAL_ACCOUNT--legal-slm-125m-chat-inference-chat-web.modal.run";
 
 export const HF_URL = "https://huggingface.co/DeependraVerma/slm-125m-base";
 export const HF_SFT_URL = "https://huggingface.co/DeependraVerma/legal-slm-125m-sft";
