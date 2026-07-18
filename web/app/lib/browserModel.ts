@@ -2,7 +2,7 @@
 // The model runs entirely on the visitor's device (no server).
 // transformers.js is imported lazily so it never touches SSR or the initial bundle.
 
-const ONNX_REPO = "jonam-ai/legal-slm-125m-sft-onnx";
+const ONNX_REPO = "DeependraVerma/legal-slm-125m-sft-onnx";
 const SYSTEM_PROMPT =
   "You are a knowledgeable legal and financial assistant. Answer accurately and concisely.";
 

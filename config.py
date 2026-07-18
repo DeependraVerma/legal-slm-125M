@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Mapping
 
-# Project identity / paths (all paths are relative to the Modal Volume mount).
+# Project identity / paths. DATA_ROOT is "/data" (the Modal Volume mount)
+# unless SLM_DATA_ROOT is set, which the on-prem pipeline (local_pipeline.py,
+# train.py run via torchrun outside Modal) uses to point at local disk instead.
 PROJECT = "slm-125m"
-HF_REPO = "jonam-ai/slm-125m-base"  # HF namespace for Phase 6 push
+HF_REPO = "DeependraVerma/slm-125m-base"  # HF namespace for Phase 6 push
 
 VOLUME_NAME = "slm-125m"
-DATA_ROOT = "/data"
+DATA_ROOT = os.environ.get("SLM_DATA_ROOT", "/data")
 CLEAN_DIR = f"{DATA_ROOT}/clean"          # Phase 1
 CORPUS_DIR = f"{DATA_ROOT}/corpus"        # Phase 2
 TOKENIZER_DIR = f"{DATA_ROOT}/tokenizer"  # Phase 3

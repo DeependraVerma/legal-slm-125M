@@ -1,4 +1,4 @@
-"""Phase 2: supervised fine-tuning of the mentor's 125M base model on our Q&A set.
+"""Phase 2: supervised fine-tuning of our own pretrained 125M base model on our Q&A set.
 
 Single GPU, full fine-tune, bf16 autocast on fp32 master weights, loss only on the
 answer tokens (labels were pre-masked to -100 in Phase 1). No DDP / torch.compile —
@@ -15,7 +15,7 @@ import config
 
 app = modal.App("slm-125m-sft-train")
 
-MENTOR_MODEL = "thesreedath/slm-125m-base"
+BASE_MODEL_DIR = config.BASE_CKPT_DIR       # our own Phase 5 pretrained model
 SFT_DIR = f"{config.DATA_ROOT}/sft"
 DATASET_DIR = f"{SFT_DIR}/dataset"
 OUT_DIR = f"{SFT_DIR}/model"
@@ -48,7 +48,7 @@ def sft(epochs: float = 3.0, lr: float = 3e-5, batch_size: int = 32,
     torch.manual_seed(seed)
     device = "cuda"
 
-    tok = AutoTokenizer.from_pretrained(MENTOR_MODEL)
+    tok = AutoTokenizer.from_pretrained(config.TOKENIZER_DIR)
     pad_id = tok.convert_tokens_to_ids("<|pad|>")
     eos_id = tok.convert_tokens_to_ids("<|eos|>")
 
@@ -64,7 +64,7 @@ def sft(epochs: float = 3.0, lr: float = 3e-5, batch_size: int = 32,
     print(f"train={len(train)} val={len(val)} | pad_id={pad_id} eos_id={eos_id}")
 
     # fp32 master weights; bf16 autocast for compute (stable, no loss scaling)
-    model = AutoModelForCausalLM.from_pretrained(MENTOR_MODEL, torch_dtype=torch.float32).to(device)
+    model = AutoModelForCausalLM.from_pretrained(BASE_MODEL_DIR, torch_dtype=torch.float32).to(device)
     model.train()
     n_params = sum(p.numel() for p in model.parameters())
     print(f"model params: {n_params:,}")

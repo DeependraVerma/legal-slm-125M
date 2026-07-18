@@ -8,8 +8,8 @@ export const CHAT_URL =
   process.env.NEXT_PUBLIC_CHAT_URL ??
   "https://mcrao--legal-slm-125m-chat-inference-chat-web.modal.run";
 
-export const HF_URL = "https://huggingface.co/jonam-ai/slm-125m-base";
-export const HF_SFT_URL = "https://huggingface.co/jonam-ai/legal-slm-125m-sft";
+export const HF_URL = "https://huggingface.co/DeependraVerma/slm-125m-base";
+export const HF_SFT_URL = "https://huggingface.co/DeependraVerma/legal-slm-125m-sft";
 
 export const CHAT_PRESETS = [
   "What must a plaintiff prove in a breach of contract claim?",
@@ -20,7 +20,7 @@ export const CHAT_PRESETS = [
 ] as const;
 
 export const SFT_STATS = [
-  { k: "Base", v: "slm-125m-base", note: "10-epoch peer base" },
+  { k: "Base", v: "slm-125m-base", note: "our own pretrained base" },
   { k: "Fine-tuned on", v: "5,846 Q&A", note: "Gemini-distilled + judged" },
   { k: "SFT val loss", v: "2.06", note: "from 4.27" },
   { k: "Fine-tune", v: "1×L4 · ~80s", note: "full fine-tune" },

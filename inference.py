@@ -1,6 +1,6 @@
 """Live inference endpoint for legal-slm-125.
 
-Serves jonam-ai/slm-125m-base as a scale-to-zero CPU service with token-by-token
+Serves DeependraVerma/slm-125m-base as a scale-to-zero CPU service with token-by-token
 SSE streaming, so the Vercel frontend can show the base model completing text live.
 
     modal deploy inference.py
@@ -23,7 +23,7 @@ image = (
     )
 )
 
-MODEL_ID = "jonam-ai/slm-125m-base"
+MODEL_ID = "DeependraVerma/slm-125m-base"
 EOS = "<|eos|>"
 
 # Persist the HF download so cold starts don't re-fetch the weights.

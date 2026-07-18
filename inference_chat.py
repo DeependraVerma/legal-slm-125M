@@ -1,4 +1,4 @@
-"""Live chat endpoint for the fine-tuned model (jonam-ai/legal-slm-125m-sft).
+"""Live chat endpoint for the fine-tuned model (DeependraVerma/legal-slm-125m-sft).
 
 Scale-to-zero CPU service that renders the chat format and streams the assistant's
 answer token-by-token (SSE), so the Vercel front end can show a live chatbot.
@@ -22,7 +22,7 @@ image = (
     )
 )
 
-MODEL_ID = "jonam-ai/legal-slm-125m-sft"
+MODEL_ID = "DeependraVerma/legal-slm-125m-sft"
 SYSTEM_PROMPT = "You are a knowledgeable legal and financial assistant. Answer accurately and concisely."
 
 hf_cache = modal.Volume.from_name("legal-slm-hf-cache", create_if_missing=True)

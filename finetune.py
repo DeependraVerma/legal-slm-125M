@@ -1,5 +1,5 @@
 """Phase 1 of fine-tuning: build a grounded Q&A SFT dataset with a Gemini teacher,
-then tokenize it with the MENTOR's tokenizer (thesreedath/slm-125m-base).
+then tokenize it with our own Phase 3 tokenizer.
 
 Pipeline (all fanned out on Modal):
     chunk_corpus  -> /data/sft/passages.jsonl
@@ -18,7 +18,7 @@ import config
 
 app = modal.App("slm-125m-sft")
 
-MENTOR_MODEL = "thesreedath/slm-125m-base"
+BASE_MODEL_DIR = config.BASE_CKPT_DIR       # our own Phase 5 pretrained model
 GEN_MODEL = "gemini-flash-lite-latest"      # cheap, high-volume generation
 JUDGE_MODEL = "gemini-flash-latest"         # stronger validator
 GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -387,7 +387,6 @@ def build(n_passages: int = 1500, shards: int = 12):
 # Step 4 + 5: curate (dedup + decontaminate) -> chat format -> tokenize
 # --------------------------------------------------------------------------- #
 DATASET_DIR = f"{SFT_DIR}/dataset"
-MENTOR_TOK_DIR = f"{SFT_DIR}/mentor_tokenizer"
 MAX_LEN = 1024
 VAL_FRACTION = 0.05
 
@@ -451,9 +450,8 @@ def curate() -> dict:
     n_val = max(100, int(len(kept) * VAL_FRACTION))
     val_pairs, train_pairs = kept[:n_val], kept[n_val:]
 
-    # ---- tokenize with the MENTOR tokenizer, loss-masked on the answer ----
-    tok = AutoTokenizer.from_pretrained(MENTOR_MODEL, cache_dir=MENTOR_TOK_DIR)
-    tok.save_pretrained(MENTOR_TOK_DIR)
+    # ---- tokenize with our own Phase 3 tokenizer, loss-masked on the answer ----
+    tok = AutoTokenizer.from_pretrained(config.TOKENIZER_DIR)
     sid = tok.convert_tokens_to_ids
     BOS, EOS = sid("<|bos|>"), sid("<|eos|>")
     SYS, USER, ASST = sid("<|system|>"), sid("<|user|>"), sid("<|assistant|>")
@@ -502,7 +500,7 @@ def curate() -> dict:
         "final_pairs": len(kept), "train": len(train_pairs), "val": len(val_pairs),
         "train_answer_tokens": train_answer_tokens, "val_answer_tokens": val_answer_tokens,
         "by_source": dist("source"), "by_task": dist("task_type"), "by_difficulty": dist("difficulty"),
-        "max_len": MAX_LEN, "system_prompt": SYSTEM_PROMPT, "tokenizer": MENTOR_MODEL,
+        "max_len": MAX_LEN, "system_prompt": SYSTEM_PROMPT, "tokenizer": config.TOKENIZER_DIR,
     }
     with open(f"{DATASET_DIR}/meta.json", "w", encoding="utf-8") as fh:
         json.dump(meta, fh, indent=2)
@@ -522,7 +520,7 @@ def verify_example(idx: int = 0) -> None:
 
     from transformers import AutoTokenizer
 
-    tok = AutoTokenizer.from_pretrained(MENTOR_TOK_DIR)
+    tok = AutoTokenizer.from_pretrained(config.TOKENIZER_DIR)
     with open(f"{DATASET_DIR}/train.jsonl", encoding="utf-8") as fh:
         row = json.loads(fh.readlines()[idx])
     ii, ll = row["input_ids"], row["labels"]

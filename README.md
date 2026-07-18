@@ -10,8 +10,8 @@ served through a Vercel front end.
 The full arc: **random weights → a base model that writes fluent legal/financial
 text → a fine-tuned model that answers questions about it.**
 
-- 🤗 **Base model:** https://huggingface.co/jonam-ai/slm-125m-base
-- 🤗 **Fine-tuned (instruct) model:** https://huggingface.co/jonam-ai/legal-slm-125m-sft
+- 🤗 **Base model:** https://huggingface.co/DeependraVerma/slm-125m-base
+- 🤗 **Fine-tuned (instruct) model:** https://huggingface.co/DeependraVerma/legal-slm-125m-sft
 - 🌐 **Live demo:** https://legal-slm-125.vercel.app
 - 📊 **Held-out perplexity:** **9.13** (base) · **SFT val loss 2.06**
 
@@ -213,7 +213,7 @@ your HF repo (set `HF_REPO` in `config.py` first):
 ```bash
 modal volume get slm-125m /checkpoints/base ./hf_export
 modal volume get slm-125m /tokenizer        ./hf_export
-huggingface-cli upload jonam-ai/slm-125m-base ./hf_export .
+huggingface-cli upload DeependraVerma/slm-125m-base ./hf_export .
 ```
 Expect a held-out perplexity around **9.13**.
 
@@ -234,7 +234,7 @@ calls it and renders the completion live.
 ```bash
 modal run finetune.py::pilot          # 20-passage sanity + live cost projection
 modal run finetune.py::build          # generate + LLM-judge the full Q&A set
-modal run finetune.py::curate_run     # dedup + format + tokenize (mentor tokenizer)
+modal run finetune.py::curate_run     # dedup + format + tokenize (own tokenizer)
 modal run train_sft.py::run --epochs 2  # supervised fine-tune on 1×L4
 ```
 This turns the base model into one that *answers* questions. It is a full stage in
@@ -373,30 +373,25 @@ The base model *continues* text; it cannot *answer* a question. Phase 8 turns it
 into a small instruction-following assistant via **supervised fine-tuning (SFT)**
 on a synthetic legal/financial Q&A dataset.
 
-- 🤗 **Instruct model:** https://huggingface.co/jonam-ai/legal-slm-125m-sft
+- 🤗 **Instruct model:** https://huggingface.co/DeependraVerma/legal-slm-125m-sft
 - 💬 **Live chat:** the "Chat" section of https://legal-slm-125.vercel.app — with a
   **Server / In-browser** toggle:
   - **Server** streams the fine-tuned model via `inference_chat.py` (scale-to-zero Modal).
   - **⚡ In-browser** runs the model **entirely on the visitor's device** via
     [transformers.js](https://github.com/huggingface/transformers.js) — an int8 ONNX
-    export ([`jonam-ai/legal-slm-125m-sft-onnx`](https://huggingface.co/jonam-ai/legal-slm-125m-sft-onnx),
+    export ([`DeependraVerma/legal-slm-125m-sft-onnx`](https://huggingface.co/DeependraVerma/legal-slm-125m-sft-onnx),
     ~140MB, cached after first load; the int8 step costs ~38% on held-out perplexity
     versus fp32, a deliberate size-for-quality trade). **No backend, $0 forever.** This is the only way
     to serve a custom model with zero server cost — HF's free serverless API doesn't
     host arbitrary models, and HF Docker Spaces now require a paid PRO plan.
 
-### Why fine-tune on a *different* base model
-We fine-tune on top of **`thesreedath/slm-125m-base`** — a peer's 125M model
-pretrained for **10 epochs** on the same data — rather than our own 2-epoch base.
-A better-trained base is a better starting point, and it is architecturally
-identical (Llama, 12L/768d, vocab 16,384), so nothing downstream changes.
-
-**The tokenizer subtlety that matters most:** a model's embedding rows are bound to
-the exact token IDs of the tokenizer it trained with. That base has its *own*
-16,384-token BPE — same size and same special tokens as ours, but a
-separately-trained BPE maps text to **different IDs**. So the fine-tuning data
-**must be tokenized with that model's `tokenizer.json`**, not ours. We load and
-reuse it; we do **not** train a new tokenizer.
+### Fine-tuning on our own pretrained base model
+Phase 8 fine-tunes on top of **our own Phase 5 pretrained checkpoint**
+(`config.BASE_CKPT_DIR`, pushed to the Hub as `DeependraVerma/slm-125m-base`) —
+the exact model this repo trains from scratch, no borrowed or third-party base.
+Since it's the same model end to end, the fine-tuning data is tokenized with our
+own Phase 3 tokenizer (`config.TOKENIZER_DIR`) — no separate tokenizer to download
+or reconcile token IDs against.
 
 ### Building the Q&A dataset (teacher-LLM distillation)
 File: `finetune.py`. We synthesize grounded Q&A from the cleaned corpus with a
@@ -411,8 +406,8 @@ generate       Gemini Flash-Lite writes SELF-CONTAINED Q&A answerable ONLY from 
 judge          Gemini Flash scores each pair: grounded AND correct AND
                self-contained?  keep only score ≥ 4/5     (~78% pass)
 curate         exact + MinHash-LSH near-dup removal; train/val split (disjoint ⇒
-               decontaminated by construction); chat-JSONL; tokenize with the
-               MENTOR tokenizer, loss-masked on the answer only
+               decontaminated by construction); chat-JSONL; tokenize with our
+               own Phase 3 tokenizer, loss-masked on the answer only
 ```
 
 The teacher is told to **answer only from the passage** — if a question can't be
@@ -439,7 +434,7 @@ for zero speedup.
 
 | | |
 |---|---|
-| Base | `thesreedath/slm-125m-base` |
+| Base | `DeependraVerma/slm-125m-base` (this repo's own Phase 5 output) |
 | Method | **full fine-tune** (not LoRA) |
 | Hardware | **1 × L4** |
 | Epochs | 2 |
@@ -481,8 +476,8 @@ list of elements. Factual precision is bounded by 125M capacity — it learns th
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-tok = AutoTokenizer.from_pretrained("jonam-ai/legal-slm-125m-sft")
-model = AutoModelForCausalLM.from_pretrained("jonam-ai/legal-slm-125m-sft", torch_dtype=torch.bfloat16)
+tok = AutoTokenizer.from_pretrained("DeependraVerma/legal-slm-125m-sft")
+model = AutoModelForCausalLM.from_pretrained("DeependraVerma/legal-slm-125m-sft", torch_dtype=torch.bfloat16)
 
 system = "You are a knowledgeable legal and financial assistant. Answer accurately and concisely."
 question = "What is the purpose of a Form 10-K filing?"
@@ -543,9 +538,9 @@ fewer epochs or a single-H100 run cost proportionally less. Everything except Ph
 
 Built from scratch as a hands-on study in end-to-end language-model engineering:
 data → tokenizer → pretraining → evaluation → deployment → **fine-tuning**. Inspired
-by the Vizuara AI Lab "SLM from scratch" session. Phase 8 fine-tunes on top of the
-peer base model [`thesreedath/slm-125m-base`](https://huggingface.co/thesreedath/slm-125m-base)
-and distills its Q&A dataset from a Google Gemini teacher.
+by the Vizuara AI Lab "SLM from scratch" session. Phase 8 fine-tunes on top of this
+repo's own pretrained base model and distills its Q&A dataset from a Google Gemini
+teacher.
 
 Code is released under the [MIT License](LICENSE). The model weights on Hugging
 Face carry their own card and disclaimers. This is a research artifact, **not**
