@@ -12,7 +12,7 @@ text → a fine-tuned model that answers questions about it.**
 
 - 🤗 **Base model:** https://huggingface.co/DeependraVerma/slm-125m-base
 - 🤗 **Fine-tuned (instruct) model:** https://huggingface.co/DeependraVerma/legal-slm-125m-sft
-- 🌐 **Live demo:** https://legal-slm-125.vercel.app
+- 🌐 **Live demo:** https://deependraverma-ai-legal-slm-125-m.vercel.app/
 - 📊 **Held-out perplexity:** **7.76** (base, full 20.6M-token val set)
 
 | | |
