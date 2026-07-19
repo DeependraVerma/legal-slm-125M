@@ -2,8 +2,10 @@
 
 import { useRef, useState } from "react";
 import { INFERENCE_URL, PRESETS } from "@/app/lib/model";
+import { ensureBaseLoaded, generateBase, isBaseModelLoaded } from "@/app/lib/browserModelBase";
 
 type Status = "idle" | "waking" | "streaming" | "done" | "error";
+type Mode = "server" | "browser";
 
 export default function Playground() {
   const [prompt, setPrompt] = useState<string>(PRESETS[0]);
@@ -12,6 +14,9 @@ export default function Playground() {
   const [maxTokens, setMaxTokens] = useState(96);
   const [temp, setTemp] = useState(0.8);
   const [error, setError] = useState<string>("");
+  const [mode, setMode] = useState<Mode>("browser");
+  const [dlProgress, setDlProgress] = useState(0);
+  const [loadingModel, setLoadingModel] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const busy = status === "waking" || status === "streaming";
@@ -21,6 +26,28 @@ export default function Playground() {
     setTokens([]);
     setError("");
     setStatus("waking");
+
+    // ---- in-browser (transformers.js) ----
+    if (mode === "browser") {
+      try {
+        if (!isBaseModelLoaded()) setLoadingModel(true);
+        await ensureBaseLoaded(setDlProgress);
+        setLoadingModel(false);
+        setStatus("streaming");
+        await generateBase(prompt, maxTokens, temp, (tok) => {
+          setTokens((t) => [...t, tok]);
+        });
+        setStatus("done");
+      } catch {
+        setError("The in-browser model couldn't load. Your browser may not support it. Try Server mode instead.");
+        setStatus("error");
+      } finally {
+        setLoadingModel(false);
+      }
+      return;
+    }
+
+    // ---- server ----
     const ctrl = new AbortController();
     abortRef.current = ctrl;
 
@@ -84,6 +111,19 @@ export default function Playground() {
 
   return (
     <div className="paper-card" style={{ padding: "clamp(1.25rem, 3vw, 2rem)" }}>
+      {/* mode toggle */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap", marginBottom: "0.35rem" }}>
+        <span className="eyebrow">Playground</span>
+        <div className="seg">
+          <button data-active={mode === "server"} onClick={() => setMode("server")} disabled={busy}>Server</button>
+          <button data-active={mode === "browser"} onClick={() => setMode("browser")} disabled={busy}>⚡ In-browser</button>
+        </div>
+      </div>
+      <p className="mono" style={{ fontSize: "0.7rem", color: "var(--faint)", margin: "0 0 1rem" }}>
+        {mode === "server" ? "runs on a hosted server" : "runs entirely in your browser"}
+        {loadingModel && mode === "browser" && ` · downloading model… ${dlProgress}%`}
+      </p>
+
       {/* presets */}
       <div style={{ marginBottom: "1.1rem" }}>
         <div className="eyebrow" style={{ marginBottom: "0.7rem" }}>Starters</div>

@@ -16,6 +16,7 @@ INITIAL.md
 # ---- large artifacts (already on Hugging Face) ----
 data/
 hf_export/
+onnx_export/
 sft_export/
 onnx_sft/
 onnx_upload_sft/
