@@ -1,32 +1,46 @@
-"""Export the (locally trained) base model to ONNX + dynamic-int8-quantized
-ONNX, laid out the way transformers.js (the in-browser runtime used by
-web/app/lib/browserModel.ts) expects: `onnx/model.onnx` (fp32) and
+"""Export a locally trained model (base or SFT) to ONNX + dynamic-int8-
+quantized ONNX, laid out the way transformers.js (the in-browser runtime
+used by web/app/lib/browserModel*.ts) expects: `onnx/model.onnx` (fp32) and
 `onnx/model_quantized.onnx` (q8) alongside the usual config/tokenizer files
 at the repo root.
 
-    .venv/bin/python3 export_onnx.py                 # exports hf_export/ -> onnx_export/
+    .venv/bin/python3 export_onnx.py            # base: hf_export/ -> onnx_export/
+    .venv/bin/python3 export_onnx.py --sft       # SFT: data/sft/model/ -> onnx_export_sft/
     huggingface-cli upload DeependraVerma/slm-125m-base-onnx ./onnx_export .
+    huggingface-cli upload DeependraVerma/legal-slm-125m-sft-onnx ./onnx_export_sft .
 
-After uploading, point web/app/lib/model.ts's ONNX_BASE_REPO (or whichever
-constant browserModelBase.ts reads) at that repo.
+After uploading, point web/app/lib/model.ts / browserModel*.ts's ONNX repo
+constant at whichever repo you just pushed.
 """
 
 from __future__ import annotations
 
+import argparse
 import shutil
 from pathlib import Path
 
 from optimum.exporters.onnx import main_export
 from onnxruntime.quantization import QuantType, quantize_dynamic
 
-SRC_DIR = Path(__file__).parent / "hf_export"
-OUT_DIR = Path(__file__).parent / "onnx_export"
-ONNX_SUBDIR = OUT_DIR / "onnx"
+import config
+
+BASE_SRC_DIR = Path(__file__).parent / "hf_export"
+BASE_OUT_DIR = Path(__file__).parent / "onnx_export"
+SFT_SRC_DIR = Path(f"{config.DATA_ROOT}/sft/model")
+SFT_OUT_DIR = Path(__file__).parent / "onnx_export_sft"
 
 
 def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("--sft", action="store_true", help="export the SFT model instead of the base model")
+    args = p.parse_args()
+
+    SRC_DIR = SFT_SRC_DIR if args.sft else BASE_SRC_DIR
+    OUT_DIR = SFT_OUT_DIR if args.sft else BASE_OUT_DIR
+    ONNX_SUBDIR = OUT_DIR / "onnx"
+
     if not SRC_DIR.exists():
-        raise SystemExit(f"{SRC_DIR} not found — run Phase 6 (evaluate + push) first.")
+        raise SystemExit(f"{SRC_DIR} not found — run {'Phase 8' if args.sft else 'Phase 6'} first.")
 
     OUT_DIR.mkdir(exist_ok=True)
 
@@ -51,7 +65,8 @@ def main():
 
     print(f"[export_onnx] done. onnx/ contains: {sorted(p.name for p in ONNX_SUBDIR.iterdir())}")
     print(f"[export_onnx] root contains: {sorted(p.name for p in OUT_DIR.iterdir() if p.is_file())}")
-    print("[export_onnx] next: huggingface-cli upload DeependraVerma/slm-125m-base-onnx ./onnx_export .")
+    target_repo = "DeependraVerma/legal-slm-125m-sft-onnx" if args.sft else "DeependraVerma/slm-125m-base-onnx"
+    print(f"[export_onnx] next: huggingface-cli upload {target_repo} ./{OUT_DIR.name} .")
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ text → a fine-tuned model that answers questions about it.**
 - 🤗 **Base model:** https://huggingface.co/DeependraVerma/slm-125m-base
 - 🤗 **Fine-tuned (instruct) model:** https://huggingface.co/DeependraVerma/legal-slm-125m-sft
 - 🌐 **Live demo:** https://deependraverma-ai-legal-slm-125-m.vercel.app/
-- 📊 **Held-out perplexity:** **7.76** (base, full 20.6M-token val set)
+- 📊 **Held-out perplexity:** **7.76** (base, full 20.6M-token val set) · **SFT val loss 2.03**
 
 | | |
 |---|---|
@@ -376,16 +376,18 @@ into a small instruction-following assistant via **supervised fine-tuning (SFT)*
 on a synthetic legal/financial Q&A dataset.
 
 - 🤗 **Instruct model:** https://huggingface.co/DeependraVerma/legal-slm-125m-sft
-- 💬 **Live chat:** the "Chat" section of https://legal-slm-125.vercel.app — with a
+- 💬 **Live chat:** the "Chat" section of https://deependraverma-ai-legal-slm-125-m.vercel.app/ — with a
   **Server / In-browser** toggle:
-  - **Server** streams the fine-tuned model via `inference_chat.py` (scale-to-zero Modal).
+  - **Server** streams the fine-tuned model from `serve_local.py`, a plain FastAPI
+    process bound to `127.0.0.1` on this project's own GPU box — no Modal, no
+    public exposure by default; point `NEXT_PUBLIC_CHAT_URL` at wherever you run it.
   - **⚡ In-browser** runs the model **entirely on the visitor's device** via
     [transformers.js](https://github.com/huggingface/transformers.js) — an int8 ONNX
     export ([`DeependraVerma/legal-slm-125m-sft-onnx`](https://huggingface.co/DeependraVerma/legal-slm-125m-sft-onnx),
-    ~140MB, cached after first load; the int8 step costs ~38% on held-out perplexity
-    versus fp32, a deliberate size-for-quality trade). **No backend, $0 forever.** This is the only way
-    to serve a custom model with zero server cost — HF's free serverless API doesn't
-    host arbitrary models, and HF Docker Spaces now require a paid PRO plan.
+    ~133MB, cached after first load). **No backend, $0 forever.** This is the default
+    mode on the public demo — HF's free serverless API doesn't host arbitrary custom
+    models, so in-browser inference is the only genuinely free way to serve this to
+    the public without running your own server.
 
 ### Fine-tuning on our own pretrained base model
 Phase 8 fine-tunes on top of **our own Phase 5 pretrained checkpoint**
@@ -396,17 +398,17 @@ own Phase 3 tokenizer (`config.TOKENIZER_DIR`) — no separate tokenizer to down
 or reconcile token IDs against.
 
 ### Building the Q&A dataset (teacher-LLM distillation)
-File: `finetune.py`. We synthesize grounded Q&A from the cleaned corpus with a
-**teacher LLM** (Google Gemini), then filter hard with a second model as an
-**LLM-as-judge**:
+File: `local_finetune.py` (on-prem port of `finetune.py`'s Modal design — see
+below for why). We synthesize grounded Q&A from the cleaned corpus with a
+**teacher LLM**, then filter hard with a second model as an **LLM-as-judge**:
 
 ```
 chunk_corpus   split the corpus into ~800-token grounded passages
-generate       Gemini Flash-Lite writes SELF-CONTAINED Q&A answerable ONLY from the
+generate       teacher writes SELF-CONTAINED Q&A answerable ONLY from the
                passage — balanced across task types (qa / extraction / summarization
                / rewrite) and difficulty (easy → hard)
-judge          Gemini Flash scores each pair: grounded AND correct AND
-               self-contained?  keep only score ≥ 4/5     (~78% pass)
+judge          judge model scores each pair: grounded AND correct AND
+               self-contained?  keep only score ≥ 4/5
 curate         exact + MinHash-LSH near-dup removal; train/val split (disjoint ⇒
                decontaminated by construction); chat-JSONL; tokenize with our
                own Phase 3 tokenizer, loss-masked on the answer only
@@ -418,34 +420,47 @@ than hallucinated. Questions are forced to be self-contained (name the entity, n
 "this document") so the data trains a **closed-book** assistant that matches how
 the model is actually served.
 
+**Teacher/judge model, honestly:** the plan was Gemini for both (cheap, and two
+different Gemini tiers gives independent gen/judge verification). In practice,
+free-tier quotas across Gemini and Groq were exhausted mid-build (daily token
+caps, not fixable by retrying), so generation ended up running on a locally
+hosted **Meta-Llama-3.1-70B-Instruct** (zero external quota, this box's own
+GPUs) and judging on a mix of **NVIDIA Nemotron-Ultra-550B** (genuinely
+independent verification, where its own free-tier concurrency cap allowed)
+falling back to the same Llama-70B when it didn't. Real cost: **$0**. The
+honest tradeoff: a meaningful fraction of judging ended up as the generator
+self-grading rather than fully independent verification — see
+`.claude/skills/legal-slm-build/phase_wise_tasks.md` for the blow-by-blow.
+
 Realized dataset:
 
 | | |
 |---|---|
-| Generated → judged → deduped | 7,495 → 5,856 → **5,846** final pairs |
-| Train / val | 5,554 / 292 |
-| Source mix | case-law 45% · SEC 45% · web 10% |
-| Task mix | qa 42% · extraction 21% · summarization 20% · rewrite 17% |
-| Difficulty | easy 26% · medium 44% · hard 30% |
-| Teacher / judge | `gemini-flash-lite` / `gemini-flash` |
+| Generated → judged/kept | 6,810 → **6,268** final pairs |
+| Train / val | 5,955 / 313 |
+| Source mix | SEC 47% · case-law 43% · web 10% |
+| Task mix | qa 49% · extraction 32% · summarization 17% · rewrite 2% |
+| Difficulty | easy 42% · medium 40% · hard 17% |
+| Teacher | local Llama-3.1-70B-Instruct (via vLLM) |
+| Judge | NVIDIA Nemotron-Ultra-550B, falling back to Llama-70B under rate limiting |
 
 ### The SFT training
-File: `train_sft.py`. **Single GPU, full fine-tune, no DDP / `torch.compile`** — the
-workload is tiny, and multi-GPU would only re-introduce the fragility from Phase 5
-for zero speedup.
+File: `local_train_sft.py` (on-prem port of `train_sft.py`). **Single GPU, full
+fine-tune, no DDP / `torch.compile`** — the workload is tiny, and multi-GPU would
+only re-introduce the fragility from Phase 5 for zero speedup.
 
 | | |
 |---|---|
 | Base | `DeependraVerma/slm-125m-base` (this repo's own Phase 5 output) |
 | Method | **full fine-tune** (not LoRA) |
-| Hardware | **1 × L4** |
+| Hardware | 1 GPU on this box's 8×B200 (on-prem, free — original design targeted 1×L4) |
 | Epochs | 2 |
 | LR | 3e-5, cosine decay, 3% warmup |
 | Precision | bf16 compute, fp32 master weights |
 | Loss | on **answer tokens only** (prompt masked to `-100`) |
-| Tokens seen | ~1.0M |
-| Time | ~80 seconds |
-| Val loss | 4.27 → **2.06** |
+| Tokens seen | ~0.9M |
+| Time | ~14 seconds |
+| Val loss | 2.94 → **2.03** (independently recomputed from the saved checkpoint, not just the training run's own number — see `evaluate_sft.py`) |
 
 **Chat format** — the tokenizer has role tokens but no chat template, so we define one:
 ```
@@ -454,23 +469,29 @@ for zero speedup.
 Only the `{answer}…<|eos|>` span contributes to the loss, so the model learns to
 *produce* answers rather than echo prompts.
 
-**Result:** the model now responds in-format instead of rambling. Asked *"In a
-breach of contract claim, what must the plaintiff prove?"* it returns a numbered
-list of elements. Factual precision is bounded by 125M capacity — it learns the
-*shape* of a grounded answer and will still invent specifics.
+**Result, honestly evaluated (`evaluate_sft.py`):** the model now responds
+in-format instead of rambling — asked about SEC-filing-style questions similar to
+its training distribution, answers are reasonable. Pushed further with
+out-of-distribution questions and adversarial prompts designed to check for
+hallucination, it shows the failure modes you'd expect at this scale: it
+sometimes answers general legal questions incoherently, and it will confidently
+invent a specific-sounding but fake number or case citation rather than say it
+doesn't know. This isn't a defect in this particular run — it's the well-known
+behavior of small models fine-tuned on a few thousand examples. **Never use this
+model's output as legal, financial, or factual advice.**
 
 ### Fine-tuning design decisions
 - **Full fine-tune, not LoRA.** LoRA exists to save memory on billion-parameter
-  models; at 125M, full FT is cheap (~$0.05) and higher quality.
-- **Single GPU, no DDP.** ~1M tokens over 2 epochs is seconds of compute; multi-GPU
-  adds coordination overhead and the `torch.compile`+NCCL failure modes for nothing.
-- **2 epochs.** Validation loss bottomed near epoch 1 (2.045) and *rose* by epoch 3
-  (2.11) while train loss kept falling — classic mild overfitting. 2 epochs
-  (val 2.06) is the sweet spot.
-- **LLM-as-judge.** A teacher can hallucinate; a second strong model that keeps only
-  grounded, correct, self-contained pairs removes ~22% of raw output. Quality over
-  quantity — cf. LIMA: 1,000 excellent pairs beat 100,000 noisy ones.
-- **~5,000 pairs.** Enough to imprint Q&A behavior on a small model without
+  models; at 125M, full FT is cheap (free, on-prem) and higher quality.
+- **Single GPU, no DDP.** Under 1M tokens over 2 epochs is seconds of compute;
+  multi-GPU adds coordination overhead and the `torch.compile`+NCCL failure modes
+  for nothing.
+- **2 epochs.** Matches the original design's choice to stop before overfitting
+  sets in on a dataset this size.
+- **LLM-as-judge.** A teacher can hallucinate; a judge model that keeps only
+  grounded, correct, self-contained pairs removed ~8% of raw output here. Quality
+  over quantity — cf. LIMA: a smaller curated set beats a large noisy one.
+- **~6,300 pairs.** Enough to imprint Q&A behavior on a small model without
   overfitting; a giant noisy set would just be memorized.
 
 ### Using the fine-tuned model

@@ -1,12 +1,17 @@
 """On-prem port of finetune.py (Phase 8, step 1): build a grounded Q&A SFT
-dataset with a Gemini teacher, then tokenize it with our own Phase 3
-tokenizer. Same logic as finetune.py, ported from Modal `@app.function`
-steps + `.local_entrypoint()`s fanned out across cloud containers to plain
-functions run in-process, and from Modal Volume writes to plain local disk
-under config.DATA_ROOT (set SLM_DATA_ROOT to control where that is, same as
-local_pipeline.py). The Modal `gemini-api` secret is replaced by reading
-GEMINI_API_KEY straight from the environment — source .env.local and export
-it first, same convention as HUGGINGFACE_TOKEN elsewhere in this repo:
+dataset with an LLM teacher, then tokenize it with our own Phase 3 tokenizer.
+Same logic as finetune.py, ported from Modal `@app.function` steps +
+`.local_entrypoint()`s fanned out across cloud containers to plain functions
+run in-process, and from Modal Volume writes to plain local disk under
+config.DATA_ROOT (set SLM_DATA_ROOT to control where that is, same as
+local_pipeline.py).
+
+Teacher backend: PROVIDER = "groq" (openai/gpt-oss-120b, free tier, rotates
+across GROQ_API_KEY_1/2/3 whenever one gets rate-limited) by default. Set
+PROVIDER = "gemini" at the top of this file to fall back to the original
+Gemini REST path if every Groq key is ever exhausted at once. Either way,
+source .env.local first — same convention as HUGGINGFACE_TOKEN elsewhere in
+this repo:
 
     source .env.local && export GEMINI_API_KEY
     export SLM_DATA_ROOT=/raid/llm_sec/legal-slm-125M/data
@@ -14,34 +19,75 @@ it first, same convention as HUGGINGFACE_TOKEN elsewhere in this repo:
 Pipeline (unchanged from finetune.py):
     chunk   -> $SLM_DATA_ROOT/sft/passages.jsonl          (free, no API calls)
     pilot   -> tiny end-to-end run (~20 passages) + live cost projection
-    build   -> full raw-set build: chunk -> generate (Gemini) -> judge (Gemini)
+    build   -> full raw-set build: chunk -> generate (teacher) -> judge (teacher)
     curate  -> dedup + decontam + chat JSONL + tokenize -> $SLM_DATA_ROOT/sft/dataset/
     verify  -> print one tokenized train example, decoded
 
     .venv/bin/python3 local_finetune.py chunk --n-passages 20   # free, safe to run anytime
-    .venv/bin/python3 local_finetune.py pilot                   # PAID: real Gemini calls
-    .venv/bin/python3 local_finetune.py build                   # PAID: real Gemini calls
+    .venv/bin/python3 local_finetune.py pilot                   # free on Groq's tier; PAID if PROVIDER="gemini"
+    .venv/bin/python3 local_finetune.py build                   # free on Groq's tier; PAID if PROVIDER="gemini"
     .venv/bin/python3 local_finetune.py curate
     .venv/bin/python3 local_finetune.py verify
 
-Always run `pilot` before `build` — it prints a live cost projection from
-actual Gemini pricing before the full run commits spend. Per this project's
-rules, get explicit user go-ahead immediately before running `pilot`/`build`
-(they call the paid Gemini API) — `chunk`, `curate`, and `verify` make no
-network calls and are free.
+Always run `pilot` before `build` — it prints a live cost projection before
+the full run. Per this project's rules, get explicit user go-ahead
+immediately before running `pilot`/`build` if PROVIDER="gemini" (real paid
+API calls) — under "groq" there's no spend, but it's still worth a quick
+go-ahead since it's real API usage against your keys. `chunk`, `curate`, and
+`verify` make no network calls and are free either way.
 """
 
 from __future__ import annotations
 
 import argparse
+import itertools
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 import config
 
+# Round-robins the *starting* key for each Groq call (not just on-failure
+# fallback) so concurrent calls spread across all 3 independent org budgets
+# from the outset, instead of everything hitting key 1 until it fails.
+_key_cycle_lock = threading.Lock()
+_key_cycle: itertools.cycle | None = None
+
+
+def _rotate_keys(keys: list[str]) -> list[str]:
+    global _key_cycle
+    with _key_cycle_lock:
+        if _key_cycle is None:
+            _key_cycle = itertools.cycle(range(len(keys)))
+        start = next(_key_cycle)
+    return keys[start:] + keys[:start]
+
 BASE_MODEL_DIR = config.BASE_CKPT_DIR       # our own Phase 5 pretrained model
+
+# Teacher backend. "hybrid" (current, v2): generation -> local Llama-70B
+# (fast, free, no quota). Judging -> NVIDIA NIM's Nemotron-Ultra-550B
+# (nvidia/nemotron-3-ultra-550b-a55b), a genuinely different and much larger
+# model than the generator -- real independent verification, not
+# self-judging. Falls back to Llama-70B per call if NIM ever fails/errors,
+# same fail-fast pattern as the (now-retired) Gemini-judge attempt: Gemini's
+# 3 keys were confirmed fully dead (both "prepayment credits depleted" and
+# "exceeded quota" errors, live-tested repeatedly), so that path is no
+# longer attempted at all. "groq"/"gemini"/"llama70b" remain as
+# single-provider fallbacks if NIM or the local model are ever unavailable.
+PROVIDER = "hybrid"
+LLAMA70B_ENDPOINT = "http://127.0.0.1:8000/v1/chat/completions"
+LLAMA70B_MODEL = "llama_70b"
+
+NVIDIA_NIM_ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions"
+NVIDIA_NIM_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
+
 GEN_MODEL = "gemini-flash-lite-latest"      # cheap, high-volume generation
 JUDGE_MODEL = "gemini-flash-latest"         # stronger validator
 GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+GEMINI_KEY_ENV_VARS = ("GEMINI_API_KEY_1", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3")
+
+GROQ_GEN_MODEL = "openai/gpt-oss-120b"
+GROQ_JUDGE_MODEL = "openai/gpt-oss-120b"
+GROQ_KEY_ENV_VARS = ("GROQ_API_KEY_1", "GROQ_API_KEY_2", "GROQ_API_KEY_3")
 
 SYSTEM_PROMPT = "You are a knowledgeable legal and financial assistant. Answer accurately and concisely."
 
@@ -60,10 +106,10 @@ PASSAGE_CHARS = 2800          # ~700-800 tokens per grounded passage
 # --------------------------------------------------------------------------- #
 # Gemini REST helper (thinking disabled for cost; retries on transient errors)
 # --------------------------------------------------------------------------- #
-def _gemini(model: str, prompt: str, *, temperature: float, max_tokens: int,
-            api_key: str) -> tuple[str, dict]:
-    import time
-
+def _gemini_once(model: str, prompt: str, *, temperature: float, max_tokens: int,
+                  api_key: str) -> tuple[str, dict, str]:
+    """Single attempt, no retry/backoff -- callers decide the retry strategy.
+    Returns (text, usage, error_str); text is "" on any failure."""
     import requests
 
     url = GEMINI_ENDPOINT.format(model=model) + f"?key={api_key}"
@@ -76,30 +122,234 @@ def _gemini(model: str, prompt: str, *, temperature: float, max_tokens: int,
             "thinkingConfig": {"thinkingBudget": 0},
         },
     }
+    try:
+        r = requests.post(url, json=body, timeout=120)
+        if r.status_code == 200:
+            data = r.json()
+            usage = data.get("usageMetadata", {})
+            cand = (data.get("candidates") or [{}])[0]
+            parts = cand.get("content", {}).get("parts", [{}])
+            text = "".join(p.get("text", "") for p in parts)
+            return text, {
+                "in": usage.get("promptTokenCount", 0),
+                "out": usage.get("candidatesTokenCount", 0),
+            }, ""
+        return "", {"in": 0, "out": 0}, f"{r.status_code}: {r.text[:160]}"
+    except Exception as e:  # network hiccup
+        return "", {"in": 0, "out": 0}, str(e)[:160]
+
+
+def _gemini(model: str, prompt: str, *, temperature: float, max_tokens: int,
+            api_key: str) -> tuple[str, dict]:
+    import time
+
+    last = ""
+    for attempt in range(6):
+        text, usage, err = _gemini_once(model, prompt, temperature=temperature,
+                                         max_tokens=max_tokens, api_key=api_key)
+        if text:
+            return text, usage
+        last = err
+        if err.startswith(("429", "500", "503")):
+            # free-tier quota is per-minute -- back off long enough to
+            # actually clear a rate-limit window, not just a network blip
+            time.sleep(min(30, 8 * (attempt + 1)))
+            continue
+        break
+    print(f"  [gemini {model}] failed: {last}", flush=True)
+    return "", {"in": 0, "out": 0}
+
+
+# --------------------------------------------------------------------------- #
+# Groq helper (openai/gpt-oss-120b) -- rotates across GROQ_API_KEY_1/2/3,
+# trying the next key immediately when one is rate-limited, instead of
+# backing off on a single key like the Gemini path has to.
+# --------------------------------------------------------------------------- #
+def _groq_keys() -> list[str]:
+    import os
+
+    keys = [os.environ[v] for v in GROQ_KEY_ENV_VARS if os.environ.get(v)]
+    if not keys:
+        raise RuntimeError(f"No Groq keys set (expected one of {GROQ_KEY_ENV_VARS})")
+    return keys
+
+
+def _groq(model: str, prompt: str, *, temperature: float, max_tokens: int,
+          reasoning_effort: str = "low") -> tuple[str, dict]:
+    import time
+
+    from groq import Groq
+
+    keys = _rotate_keys(_groq_keys())
+    last = ""
+    for round_ in range(3):  # 3 full rotations through every key before giving up
+        for i, key in enumerate(keys):
+            try:
+                client = Groq(api_key=key)
+                completion = client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_completion_tokens=max_tokens,
+                    reasoning_effort=reasoning_effort,
+                )
+                text = completion.choices[0].message.content or ""
+                u = completion.usage
+                return text, {"in": u.prompt_tokens, "out": u.completion_tokens}
+            except Exception as e:  # rate limit / transient -- try the next key right away
+                last = str(e)[:200]
+                continue
+        # All 3 keys share one org-level TPM budget (confirmed live: rotating
+        # keys does NOT dodge this, only waiting for the per-minute window to
+        # clear does) -- so back off close to a full minute, not a few seconds.
+        time.sleep(20 * (round_ + 1))
+    print(f"  [groq {model}] failed after rotating all {len(keys)} keys: {last}", flush=True)
+    return "", {"in": 0, "out": 0}
+
+
+# --------------------------------------------------------------------------- #
+# Local Llama-70B helper (vLLM, OpenAI-compatible, no external quota).
+# --------------------------------------------------------------------------- #
+def _llama70b(prompt: str, *, temperature: float, max_tokens: int) -> tuple[str, dict]:
+    import time
+
+    import requests
+
     last = ""
     for attempt in range(4):
         try:
-            r = requests.post(url, json=body, timeout=120)
+            r = requests.post(
+                LLAMA70B_ENDPOINT,
+                json={
+                    "model": LLAMA70B_MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                },
+                timeout=120,
+            )
             if r.status_code == 200:
-                data = r.json()
-                usage = data.get("usageMetadata", {})
-                cand = (data.get("candidates") or [{}])[0]
-                parts = cand.get("content", {}).get("parts", [{}])
-                text = "".join(p.get("text", "") for p in parts)
-                return text, {
-                    "in": usage.get("promptTokenCount", 0),
-                    "out": usage.get("candidatesTokenCount", 0),
-                }
+                d = r.json()
+                text = d["choices"][0]["message"]["content"] or ""
+                u = d.get("usage", {})
+                return text, {"in": u.get("prompt_tokens", 0), "out": u.get("completion_tokens", 0)}
             last = f"{r.status_code}: {r.text[:160]}"
-            if r.status_code in (429, 500, 503):
-                time.sleep(2 * (attempt + 1))
-                continue
-            break
-        except Exception as e:  # network hiccup
+        except Exception as e:  # transient (server busy, connection reset)
             last = str(e)[:160]
-            time.sleep(2 * (attempt + 1))
-    print(f"  [gemini {model}] failed: {last}", flush=True)
+        time.sleep(3 * (attempt + 1))
+    print(f"  [llama70b] failed: {last}", flush=True)
     return "", {"in": 0, "out": 0}
+
+
+# --------------------------------------------------------------------------- #
+# NVIDIA NIM (Nemotron-Ultra-550B) -- independent judge, genuinely different
+# and much larger than the Llama-70B generator. `enable_thinking: False` is
+# required for this to be usable here: with thinking on, the model burns the
+# entire token budget on its reasoning trace and never emits the JSON verdict
+# at all (confirmed live: 1024 tokens of reasoning, zero actual output).
+# --------------------------------------------------------------------------- #
+def _nvidia_nim(prompt: str, *, temperature: float, max_tokens: int) -> tuple[str, dict]:
+    import os
+    import time
+
+    import requests
+
+    api_key = os.environ.get("NVIDIA_NIM_API_KEY", "")
+    if not api_key:
+        return "", {"in": 0, "out": 0}
+    last = ""
+    # Confirmed live: NIM's "32/32 worker limit" errors are a shared
+    # real-time concurrency cap, not a quota -- worth waiting out a few
+    # seconds for a slot to free up, rather than failing fast to Llama-70B
+    # immediately (that's what workers/judge_cap are tuned low for now).
+    for attempt in range(4):
+        try:
+            r = requests.post(
+                NVIDIA_NIM_ENDPOINT,
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={
+                    "model": NVIDIA_NIM_MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "stream": False,
+                    "chat_template_kwargs": {"enable_thinking": False},
+                },
+                timeout=60,
+            )
+            if r.status_code == 200:
+                d = r.json()
+                text = d["choices"][0]["message"]["content"] or ""
+                u = d.get("usage", {})
+                return text, {"in": u.get("prompt_tokens", 0), "out": u.get("completion_tokens", 0)}
+            last = f"{r.status_code}: {r.text[:160]}"
+        except Exception as e:
+            last = str(e)[:160]
+        time.sleep(3 * (attempt + 1))
+    print(f"  [nvidia-nim] failed: {last} -- falling back to local Llama-70B for this call", flush=True)
+    return "", {"in": 0, "out": 0}
+
+
+def _judge_with_fallback(prompt: str, *, temperature: float, max_tokens: int) -> tuple[str, dict]:
+    text, u = _nvidia_nim(prompt, temperature=temperature, max_tokens=max_tokens)
+    if text:
+        return text, u
+    return _llama70b(prompt, temperature=temperature, max_tokens=max_tokens)
+
+
+def _gemini_keys() -> list[str]:
+    import os
+
+    keys = [os.environ[v] for v in GEMINI_KEY_ENV_VARS if os.environ.get(v)]
+    if not keys:
+        single = os.environ.get("GEMINI_API_KEY", "")
+        return [single] if single else []
+    return keys
+
+
+def _gemini_rotated(model: str, prompt: str, *, temperature: float, max_tokens: int) -> tuple[str, dict]:
+    """Judging only: rotates across up to 3 Gemini keys. Uses _gemini_once
+    (single attempt, no internal retry loop) so a dead/depleted key fails in
+    ~1 request, not after 6 stacked retries -- that's what makes rotation
+    actually fast instead of a multi-minute nested-retry storm. If all 3 keys
+    are still failing after 2 full rotations, fall back to the local
+    Llama-70B for this one judge call rather than dropping it entirely."""
+    import time
+
+    keys = _rotate_keys(_gemini_keys())
+    last = ""
+    for round_ in range(2):
+        for key in keys:
+            text, u, err = _gemini_once(model, prompt, temperature=temperature,
+                                         max_tokens=max_tokens, api_key=key)
+            if text:
+                return text, u
+            last = err
+        time.sleep(5 * (round_ + 1))
+    print(f"  [gemini-rotated {model}] failed after rotating all {len(keys)} keys: {last} "
+          f"-- falling back to local Llama-70B for this call", flush=True)
+    return _llama70b(prompt, temperature=temperature, max_tokens=max_tokens)
+
+
+def _call_teacher(kind: str, prompt: str, *, temperature: float, max_tokens: int,
+                   api_key: str = "") -> tuple[str, dict]:
+    """kind: 'gen' or 'judge'. Dispatches to whichever PROVIDER is active."""
+    if PROVIDER == "hybrid":
+        # gen -> local Llama-70B (fast, free, no quota); judge -> NVIDIA NIM's
+        # Nemotron-Ultra-550B, a genuinely independent (and larger) model,
+        # falling back to Llama-70B per call if NIM errors.
+        if kind == "gen":
+            return _llama70b(prompt, temperature=temperature, max_tokens=max_tokens)
+        return _judge_with_fallback(prompt, temperature=temperature, max_tokens=max_tokens)
+    if PROVIDER == "llama70b":
+        return _llama70b(prompt, temperature=temperature, max_tokens=max_tokens)
+    if PROVIDER == "groq":
+        model = GROQ_GEN_MODEL if kind == "gen" else GROQ_JUDGE_MODEL
+        effort = "low"  # "medium" for judge burned way more TPM budget than the free tier allows
+        return _groq(model, prompt, temperature=temperature, max_tokens=max_tokens,
+                     reasoning_effort=effort)
+    model = GEN_MODEL if kind == "gen" else JUDGE_MODEL
+    return _gemini(model, prompt, temperature=temperature, max_tokens=max_tokens, api_key=api_key)
 
 
 def _parse_json_array(text: str) -> list:
@@ -218,13 +468,13 @@ def generate_shard(shard_id: int, passages: list, k: int = PAIRS_PER_PASSAGE) ->
     import os
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    api_key = os.environ["GEMINI_API_KEY"]
+    api_key = os.environ.get("GEMINI_API_KEY", "")
     out_rows: list[dict] = []
     usage = {"in": 0, "out": 0, "calls": 0}
 
     def work(p):
-        text, u = _gemini(GEN_MODEL, _gen_prompt(p["passage"], k),
-                          temperature=0.85, max_tokens=2048, api_key=api_key)
+        text, u = _call_teacher("gen", _gen_prompt(p["passage"], k),
+                                temperature=0.85, max_tokens=2048, api_key=api_key)
         pairs = _parse_json_array(text)
         good = []
         for pr in pairs:
@@ -235,7 +485,8 @@ def generate_shard(shard_id: int, passages: list, k: int = PAIRS_PER_PASSAGE) ->
                              "source": p["source"], "passage": p["passage"], "pid": p["id"]})
         return good, u
 
-    with ThreadPoolExecutor(max_workers=16) as ex:
+    workers = 10 if PROVIDER in ("llama70b", "hybrid") else 6 if PROVIDER == "groq" else 3  # gen always -> local Llama-70B under hybrid
+    with ThreadPoolExecutor(max_workers=workers) as ex:
         futs = [ex.submit(work, p) for p in passages]
         for f in as_completed(futs):
             good, u = f.result()
@@ -258,14 +509,14 @@ def judge_shard(shard_id: int, groups: list) -> dict:
     import os
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    api_key = os.environ["GEMINI_API_KEY"]
+    api_key = os.environ.get("GEMINI_API_KEY", "")
     kept: list[dict] = []
     usage = {"in": 0, "out": 0, "calls": 0}
 
     def work(g):
         pairs = g["pairs"]
-        text, u = _gemini(JUDGE_MODEL, _judge_prompt(g["passage"], pairs),
-                          temperature=0.0, max_tokens=2048, api_key=api_key)
+        text, u = _call_teacher("judge", _judge_prompt(g["passage"], pairs),
+                                temperature=0.0, max_tokens=2048, api_key=api_key)
         verdicts = _parse_json_array(text)
         keep = []
         vmap = {v.get("i"): v for v in verdicts if isinstance(v, dict)}
@@ -277,7 +528,8 @@ def judge_shard(shard_id: int, groups: list) -> dict:
                              "score": int(v.get("score", 0))})
         return keep, u
 
-    with ThreadPoolExecutor(max_workers=12) as ex:
+    workers = 2 if PROVIDER == "hybrid" else 10 if PROVIDER == "llama70b" else 6 if PROVIDER == "groq" else 3  # judge -> NIM under hybrid; confirmed "32/32 worker limit" is a SHARED concurrency cap (not a quota) -- low concurrency avoids contention
+    with ThreadPoolExecutor(max_workers=workers) as ex:
         futs = [ex.submit(work, g) for g in groups]
         for f in as_completed(futs):
             keep, u = f.result()
@@ -294,10 +546,11 @@ def judge_shard(shard_id: int, groups: list) -> dict:
 
 
 # --------------------------------------------------------------------------- #
-# Cost helper (approximate public Flash rates, USD per 1M tokens)
+# Cost helper (approximate public Flash rates, USD per 1M tokens; Groq's
+# free-tier keys are genuinely free, so both rates are 0 under that provider)
 # --------------------------------------------------------------------------- #
-GEN_RATE = {"in": 0.10, "out": 0.40}     # flash-lite
-JUDGE_RATE = {"in": 0.30, "out": 2.50}   # flash
+GEN_RATE = {"in": 0.0, "out": 0.0} if PROVIDER in ("groq", "llama70b", "hybrid") else {"in": 0.10, "out": 0.40}
+JUDGE_RATE = {"in": 0.0, "out": 0.0}  # NIM/Llama70B/Groq judge cost not tracked here -- printed "$0.00" isn't a pricing claim, just untracked
 
 
 def _cost(usage: dict, rate: dict) -> float:
@@ -324,14 +577,18 @@ def read_jsonl(path: str) -> list:
     return out
 
 
-def _map_threaded(fn, work: list[tuple]) -> list:
-    """Run fn(*args) once per item in `work`, one thread per shard. Gemini calls
-    are network I/O (not CPU-bound), so threads stand in for what were separate
-    Modal containers -- each still internally fans out its own passage-level
-    ThreadPoolExecutor, same as finetune.py."""
+def _map_threaded(fn, work: list[tuple], cap: int | None = None) -> list:
+    """Run fn(*args) once per item in `work`, several shards at a time. Gemini
+    /Groq calls are network I/O (not CPU-bound), so threads stand in for what
+    were separate Modal containers -- each still internally fans out its own
+    passage-level ThreadPoolExecutor, same as finetune.py. Pass `cap` explicitly
+    when gen/judge use different backends (hybrid mode); otherwise falls back
+    to a PROVIDER-based default."""
     if not work:
         return []
-    with ThreadPoolExecutor(max_workers=len(work)) as ex:
+    if cap is None:
+        cap = 4 if PROVIDER == "llama70b" else 2
+    with ThreadPoolExecutor(max_workers=min(cap, len(work))) as ex:
         futs = [ex.submit(fn, *args) for args in work]
         return [f.result() for f in futs]
 
@@ -383,7 +640,8 @@ def cmd_build(n_passages: int = 1500, shards: int = 12) -> None:
     passages = read_passages(n_passages)
 
     gen_work = [(i, passages[i::shards]) for i in range(shards)]
-    gen = _map_threaded(generate_shard, gen_work)
+    gen_cap = 4 if PROVIDER == "hybrid" else None  # hybrid gen -> local Llama-70B, generous
+    gen = _map_threaded(generate_shard, gen_work, cap=gen_cap)
     raw_total = sum(g["pairs"] for g in gen)
     gen_cost = sum(_cost(g["usage"], GEN_RATE) for g in gen)
     print(f"\ngenerated {raw_total} raw pairs | gen cost ${gen_cost:.3f}")
@@ -398,7 +656,8 @@ def cmd_build(n_passages: int = 1500, shards: int = 12) -> None:
     groups = list(by_pid.values())
 
     jwork = [(i, groups[i::shards]) for i in range(shards)]
-    jud = _map_threaded(judge_shard, jwork)
+    judge_cap = 1 if PROVIDER == "hybrid" else None  # hybrid judge -> NIM, 1 shard * 2 workers = 2 concurrent total (shared 32-slot cap, stay well under it)
+    jud = _map_threaded(judge_shard, jwork, cap=judge_cap)
     kept_total = sum(len(j["kept"]) for j in jud)
     judge_cost = sum(_cost(j["usage"], JUDGE_RATE) for j in jud)
     print(f"\njudged: kept {kept_total} / {raw_total} ({kept_total/max(1,raw_total):.0%}) "
@@ -568,10 +827,10 @@ def main() -> None:
     s.add_argument("--n-passages", type=int, default=2000)
     s.add_argument("--seed", type=int, default=1337)
 
-    s = sub.add_parser("pilot", help="tiny end-to-end run + cost projection (PAID: real Gemini calls)")
+    s = sub.add_parser("pilot", help="tiny end-to-end run + cost projection (real teacher-API calls)")
     s.add_argument("--n-passages", type=int, default=20)
 
-    s = sub.add_parser("build", help="full raw-set build: chunk -> generate -> judge (PAID: real Gemini calls)")
+    s = sub.add_parser("build", help="full raw-set build: chunk -> generate -> judge (real teacher-API calls)")
     s.add_argument("--n-passages", type=int, default=1500)
     s.add_argument("--shards", type=int, default=12)
 

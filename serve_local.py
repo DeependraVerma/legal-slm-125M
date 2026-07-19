@@ -27,7 +27,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStream
 
 BASE_DIR = Path(__file__).parent / "hf_export"
 BASE_MODEL_ID = os.environ.get("SLM_BASE_MODEL", str(BASE_DIR) if BASE_DIR.exists() else "DeependraVerma/slm-125m-base")
-SFT_MODEL_ID = os.environ.get("SLM_SFT_MODEL", "DeependraVerma/legal-slm-125m-sft")
+SFT_DIR = Path(os.environ.get("SLM_DATA_ROOT", str(Path(__file__).parent / "data"))) / "sft" / "model"
+SFT_MODEL_ID = os.environ.get("SLM_SFT_MODEL", str(SFT_DIR) if SFT_DIR.exists() else "DeependraVerma/legal-slm-125m-sft")
 SYSTEM_PROMPT = "You are a knowledgeable legal and financial assistant. Answer accurately and concisely."
 
 DEVICE = os.environ.get("SLM_DEVICE", "cuda:0" if torch.cuda.is_available() else "cpu")
