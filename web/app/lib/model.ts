@@ -31,7 +31,7 @@ export const SFT_STATS = [
 
 export const HERO_STATS = [
   { value: "125.8M", label: "parameters" },
-  { value: "9.13", label: "held-out perplexity" },
+  { value: "7.76", label: "held-out perplexity" },
   { value: "2.04B", label: "unique tokens" },
   { value: "16,384", label: "BPE vocabulary" },
 ] as const;
@@ -40,9 +40,9 @@ export const NUMBERS = [
   { k: "Trainable parameters", v: "125,848,320", note: "tied embeddings" },
   { k: "Unique training tokens", v: "2.04 billion", note: "after dedup + decontam" },
   { k: "Tokens seen", v: "4.08 billion", note: "2 epochs" },
-  { k: "Held-out perplexity", v: "9.13", note: "20.6M-token val set" },
-  { k: "Final validation loss", v: "2.211", note: "cross-entropy" },
-  { k: "Compute", v: "8 × H100", note: "bfloat16, ~30% MFU" },
+  { k: "Held-out perplexity", v: "7.76", note: "full 20.6M-token val set" },
+  { k: "Final validation loss", v: "2.049", note: "cross-entropy" },
+  { k: "Compute", v: "8 × B200 (on-prem)", note: "bfloat16" },
 ] as const;
 
 export const ARCH = [
@@ -64,16 +64,20 @@ export const MIX = [
   { name: "Educational web", pct: 23, tone: "var(--slate)", src: "fineweb-edu" },
 ] as const;
 
-// Real held-out perplexity at each eval checkpoint during pretraining.
+// Real held-out perplexity at each eval checkpoint during pretraining
+// (data/checkpoints/metrics.jsonl). The final point is the full 20,123-window
+// val-set eval (evaluate_local.py); the rest are the periodic 512-window
+// in-training checks, which is why the curve doesn't land exactly on 7.76.
 export const CURVE: { step: number; ppl: number }[] = [
-  { step: 1000, ppl: 16.4 },
-  { step: 2000, ppl: 12.5 },
-  { step: 3000, ppl: 11.2 },
-  { step: 4000, ppl: 10.5 },
-  { step: 5000, ppl: 10.0 },
-  { step: 6000, ppl: 9.6 },
-  { step: 7000, ppl: 9.4 },
-  { step: 7778, ppl: 9.13 },
+  { step: 1000, ppl: 16.36 },
+  { step: 5000, ppl: 10.12 },
+  { step: 10000, ppl: 10.02 },
+  { step: 15000, ppl: 9.29 },
+  { step: 20000, ppl: 8.91 },
+  { step: 25000, ppl: 8.62 },
+  { step: 30000, ppl: 8.41 },
+  { step: 35000, ppl: 8.28 },
+  { step: 38889, ppl: 7.76 },
 ];
 
 export const PRESETS = [

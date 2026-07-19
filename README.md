@@ -13,7 +13,7 @@ text → a fine-tuned model that answers questions about it.**
 - 🤗 **Base model:** https://huggingface.co/DeependraVerma/slm-125m-base
 - 🤗 **Fine-tuned (instruct) model:** https://huggingface.co/DeependraVerma/legal-slm-125m-sft
 - 🌐 **Live demo:** https://legal-slm-125.vercel.app
-- 📊 **Held-out perplexity:** **9.13** (base) · **SFT val loss 2.06**
+- 📊 **Held-out perplexity:** **7.76** (base, full 20.6M-token val set)
 
 | | |
 |---|---|
@@ -21,8 +21,8 @@ text → a fine-tuned model that answers questions about it.**
 | Architecture | Llama decoder · 12L · 768d · 12 heads · 1024 ctx |
 | Tokenizer | 16,384 byte-level BPE, trained on this corpus |
 | Training data | 2.04B unique tokens (US case law + SEC filings + educational web) |
-| Pretraining | 2 epochs (7,778 steps) on 8×H100, bfloat16 |
-| Held-out perplexity | 9.13 (val loss 2.211) |
+| Pretraining | 2 epochs (38,890 steps) on 8×B200 (on-prem), bfloat16 |
+| Held-out perplexity | 7.76 (val loss 2.049, full val set) |
 
 > **Two models, two behaviors.** The **base** model continues text; it does not
 > answer questions. The **fine-tuned** model (Phase 8) answers questions but, at
@@ -358,11 +358,13 @@ optimization.
 
 ## Results
 
-Held-out perplexity over training (20.6M-token validation set):
+Held-out perplexity over training (final column is the full 20.6M-token
+validation set via `evaluate_local.py`; the rest are periodic 512-window
+in-training checks, hence the small gap to the final number):
 
-| Step | 1000 | 2000 | 3000 | 4000 | 5000 | 6000 | 7000 | final |
-|---|---|---|---|---|---|---|---|---|
-| Perplexity | 16.4 | 12.5 | 11.2 | 10.5 | 10.0 | 9.6 | 9.4 | **9.13** |
+| Step | 1,000 | 5,000 | 10,000 | 15,000 | 20,000 | 25,000 | 30,000 | 35,000 | final (38,889) |
+|---|---|---|---|---|---|---|---|---|---|
+| Perplexity | 16.4 | 10.1 | 10.0 | 9.3 | 8.9 | 8.6 | 8.4 | 8.3 | **7.76** |
 
 Sample completions are coherent, on-domain legal/financial prose (see the live
 demo) — while, being a base model, inventing all specifics.
