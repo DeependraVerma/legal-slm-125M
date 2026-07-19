@@ -536,11 +536,10 @@ fewer epochs or a single-H100 run cost proportionally less. Everything except Ph
 
 ## Credits & license
 
-Built from scratch as a hands-on study in end-to-end language-model engineering:
-data → tokenizer → pretraining → evaluation → deployment → **fine-tuning**. Inspired
-by the Vizuara AI Lab "SLM from scratch" session. Phase 8 fine-tunes on top of this
-repo's own pretrained base model and distills its Q&A dataset from a Google Gemini
-teacher.
+Designed and built end-to-end by **Deependra Verma** as a hands-on study in
+language-model engineering: data → tokenizer → pretraining → evaluation →
+deployment → **fine-tuning**. Phase 8 fine-tunes on top of this repo's own
+pretrained base model and distills its Q&A dataset from a Google Gemini teacher.
 
 Code is released under the [MIT License](LICENSE). The model weights on Hugging
 Face carry their own card and disclaimers. This is a research artifact, **not**
