@@ -266,7 +266,7 @@ function Footer() {
           </div>
           <p style={{ margin: "0.5rem 0 0", fontSize: "0.82rem", color: "var(--faint)", maxWidth: "42ch" }}>
             Built end-to-end by <strong style={{ color: "var(--muted)", fontWeight: 500 }}>{PERSON_NAME}</strong> —{" "}
-            {JOB_TITLE_LINE}. Weights on Hugging Face · inference on Modal.
+            {JOB_TITLE_LINE}. Weights on Hugging Face · in-browser inference, no server required.
           </p>
         </div>
         <div style={{ display: "flex", gap: "1.5rem", fontSize: "0.85rem", flexWrap: "wrap" }}>

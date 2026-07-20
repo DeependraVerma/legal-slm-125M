@@ -34,7 +34,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What is legal-slm-125M?",
-    a: "A 125.8-million-parameter Llama-style decoder language model trained from a random initialization on 2.04 billion unique tokens of US case law, SEC filings, and educational web text, reaching a held-out perplexity of 7.76 after two epochs of pretraining (7,778 optimizer steps).",
+    a: "A 125.8-million-parameter Llama-style decoder language model trained from a random initialization on 2.04 billion unique tokens of US case law, SEC filings, and educational web text, reaching a held-out perplexity of 7.76 after two epochs of pretraining (38,890 steps).",
   },
   {
     q: "What's the difference between the base model and the fine-tuned (chat) model?",
@@ -46,7 +46,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "How was the model trained, and what did it cost?",
-    a: "Pretraining ran for two epochs on a from-scratch cleaned and deduplicated corpus, and the fine-tuning stage distilled a Q&A dataset from a teacher LLM, filtered by an LLM-as-judge. Total real-world cost across the whole build, including GPU time and API usage, was approximately $41.",
+    a: "Pretraining ran for two epochs on a from-scratch cleaned and deduplicated corpus, and the fine-tuning stage distilled a Q&A dataset from a teacher LLM, filtered by an LLM-as-judge. The compute-heavy phases (pretraining, evaluation, fine-tuning) ran on the author's own on-prem GPUs rather than rented cloud instances, and the fine-tuning dataset was built entirely on free-tier APIs — real out-of-pocket cost for this build was $0.",
   },
 ];
 
