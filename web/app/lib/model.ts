@@ -42,8 +42,12 @@ export const NUMBERS = [
   { k: "Tokens seen", v: "4.08 billion", note: "2 epochs" },
   { k: "Held-out perplexity", v: "7.76", note: "full 20.6M-token val set" },
   { k: "Final validation loss", v: "2.049", note: "cross-entropy" },
-  { k: "Compute", v: "8 × B200 (on-prem)", note: "bfloat16" },
 ] as const;
+
+// Infra detail, intentionally kept out of the headline NUMBERS grid — real,
+// but not something a first-time (recruiter / non-ML) visitor needs up top.
+// Shown small, deeper in the page, next to the architecture detail.
+export const INFRA_NOTE = "Pretrained on 8 × B200 GPUs (on-prem) · bfloat16 compute";
 
 export const ARCH = [
   { k: "Architecture", v: "Llama-style decoder" },

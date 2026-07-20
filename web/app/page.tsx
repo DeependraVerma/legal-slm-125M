@@ -2,7 +2,8 @@ import Chat from "@/app/components/Chat";
 import Nav from "@/app/components/Nav";
 import Playground from "@/app/components/Playground";
 import { DonutMix, TrainingCurve } from "@/app/components/Visuals";
-import { ARCH, HERO_STATS, HF_SFT_URL, HF_URL, NUMBERS, SFT_STATS } from "@/app/lib/model";
+import { ARCH, HERO_STATS, HF_SFT_URL, HF_URL, INFRA_NOTE, NUMBERS, SFT_STATS } from "@/app/lib/model";
+import { FAQS, GITHUB_URL, HF_PROFILE_URL, JOB_TITLE_LINE, PERSON_NAME } from "@/app/lib/seo";
 
 export default function Home() {
   return (
@@ -56,8 +57,8 @@ export default function Home() {
       <Section n="04" eyebrow="Training" title="Perplexity, falling">
         <p style={lead}>
           Held-out perplexity measured on a 20.6-million-token validation set the model
-          never trained on. Two epochs, 7,778 optimizer steps, from a random start to{" "}
-          <strong style={{ fontWeight: 500, color: "var(--green)" }}>9.13</strong>.
+          never trained on. Two epochs, 38,890 steps, from a random start to{" "}
+          <strong style={{ fontWeight: 500, color: "var(--green)" }}>7.76</strong>.
         </p>
         <div className="paper-card" style={{ marginTop: "1.75rem", padding: "1.5rem 1.25rem" }}>
           <TrainingCurve />
@@ -76,6 +77,9 @@ export default function Home() {
           </dl>
           <LayerStack />
         </div>
+        <p className="mono" style={{ marginTop: "1.5rem", fontSize: "0.72rem", color: "var(--faint)" }}>
+          {INFRA_NOTE}
+        </p>
       </Section>
 
       <Section n="06" eyebrow="The corpus" title="Two billion tokens, hand-cleaned">
@@ -106,6 +110,44 @@ export default function Home() {
         </div>
       </Section>
 
+      <Section n="08" eyebrow="About" title="Who built this, and why">
+        <div style={{ display: "grid", gap: "1.1rem", maxWidth: "52ch" }}>
+          <p style={lead}>
+            <strong style={{ color: "var(--ink)", fontWeight: 500 }}>{PERSON_NAME}</strong> — a{" "}
+            {JOB_TITLE_LINE} — designed and built legal-slm-125M end to end: the data pipeline,
+            the byte-level tokenizer, pretraining from a random initialization, honest held-out
+            evaluation, this live demo, and the supervised fine-tuning that turned it into a
+            Q&amp;A assistant.
+          </p>
+          <p style={lead}>
+            It exists as a hands-on study in language-model engineering — proof of being able to
+            take a model from nothing to a working, evaluated, deployed system, with every number
+            on this page coming from a real training or evaluation run, not a projection.
+          </p>
+          <div style={{ display: "flex", gap: "1.25rem", flexWrap: "wrap", fontSize: "0.9rem", marginTop: "0.25rem" }}>
+            <a href={GITHUB_URL} target="_blank" rel="noopener" className="link-underline" style={{ color: "var(--green)" }}>
+              GitHub ↗
+            </a>
+            <a href={HF_PROFILE_URL} target="_blank" rel="noopener" className="link-underline" style={{ color: "var(--green)" }}>
+              Hugging Face ↗
+            </a>
+          </div>
+        </div>
+      </Section>
+
+      <Section n="09" eyebrow="FAQ" title="Questions worth answering honestly">
+        <div style={{ display: "grid", gap: "1.5rem", maxWidth: "56rem" }}>
+          {FAQS.map((f) => (
+            <div key={f.q} style={{ display: "grid", gap: "0.4rem" }}>
+              <h3 style={{ margin: 0, fontFamily: "var(--font-serif)", fontWeight: 500, fontSize: "1.15rem", color: "var(--ink)" }}>
+                {f.q}
+              </h3>
+              <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.65, maxWidth: "60ch" }}>{f.a}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       <Footer />
     </main>
   );
@@ -125,6 +167,13 @@ function Hero() {
           <p style={{ marginTop: "1.75rem", maxWidth: "44ch", fontSize: "1.1rem", color: "var(--muted)", lineHeight: 1.6 }}>
             Trained from a random initialization on <b style={{ color: "var(--ink-soft)", fontWeight: 500 }}>2.04&nbsp;billion tokens</b> of US
             case law, SEC filings and educational web text, then asked to keep writing.
+          </p>
+          <p className="mono" style={{ marginTop: "0.9rem", fontSize: "0.82rem", color: "var(--faint)", letterSpacing: "0.01em" }}>
+            Built end-to-end by{" "}
+            <a href={GITHUB_URL} target="_blank" rel="noopener" className="link-underline" style={{ color: "var(--muted)" }}>
+              {PERSON_NAME}
+            </a>{" "}
+            — {JOB_TITLE_LINE}
           </p>
           <div style={{ marginTop: "2.25rem", display: "flex", gap: "0.9rem", flexWrap: "wrap", alignItems: "center" }}>
             <a href="#play" className="btn-primary" style={{ display: "inline-block" }}>Try it live ↓</a>
@@ -146,7 +195,13 @@ function Hero() {
 }
 
 function Section({ n, eyebrow, title, children }: { n: string; eyebrow: string; title: string; children: React.ReactNode }) {
-  const anchor = eyebrow === "Playground" ? "play" : eyebrow === "Chat" ? "chat" : eyebrow === "Architecture" ? "arch" : undefined;
+  const anchor =
+    eyebrow === "Playground" ? "play" :
+    eyebrow === "Chat" ? "chat" :
+    eyebrow === "Architecture" ? "arch" :
+    eyebrow === "About" ? "about" :
+    eyebrow === "FAQ" ? "faq" :
+    undefined;
   return (
     <section id={anchor} style={{ borderTop: "1px solid var(--line)" }}>
       <div className="wrap" style={{ paddingTop: "clamp(3rem, 7vw, 5.5rem)", paddingBottom: "clamp(3rem, 7vw, 5.5rem)" }}>
@@ -209,12 +264,15 @@ function Footer() {
           <div className="mono" style={{ fontSize: "0.8rem", letterSpacing: "0.14em", color: "var(--ink)" }}>
             LEGAL·SLM·<span style={{ color: "var(--green)" }}>125</span>
           </div>
-          <p style={{ margin: "0.5rem 0 0", fontSize: "0.82rem", color: "var(--faint)", maxWidth: "40ch" }}>
-            Weights on Hugging Face · inference on Modal · built from scratch, data to deploy.
+          <p style={{ margin: "0.5rem 0 0", fontSize: "0.82rem", color: "var(--faint)", maxWidth: "42ch" }}>
+            Built end-to-end by <strong style={{ color: "var(--muted)", fontWeight: 500 }}>{PERSON_NAME}</strong> —{" "}
+            {JOB_TITLE_LINE}. Weights on Hugging Face · inference on Modal.
           </p>
         </div>
-        <div style={{ display: "flex", gap: "1.5rem", fontSize: "0.85rem" }}>
+        <div style={{ display: "flex", gap: "1.5rem", fontSize: "0.85rem", flexWrap: "wrap" }}>
           <a href={HF_URL} target="_blank" rel="noopener" className="link-underline">Model ↗</a>
+          <a href={GITHUB_URL} target="_blank" rel="noopener" className="link-underline">GitHub ↗</a>
+          <a href={HF_PROFILE_URL} target="_blank" rel="noopener" className="link-underline">Hugging Face ↗</a>
           <a href="#top" className="link-underline">Back to top ↑</a>
         </div>
       </div>

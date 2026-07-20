@@ -8,6 +8,7 @@ const LINKS = [
   { id: "play", label: "Playground", small: false },
   { id: "chat", label: "Chat", small: false },
   { id: "arch", label: "Architecture", small: true },
+  { id: "about", label: "About", small: false },
 ];
 
 export default function Nav() {

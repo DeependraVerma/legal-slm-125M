@@ -69,14 +69,14 @@ export function TrainingCurve() {
   const xs = CURVE.map((d) => d.step);
   const xmin = Math.min(...xs);
   const xmax = Math.max(...xs);
-  const ymin = 9;
+  const ymin = 7;
   const ymax = 17;
   const px = (s: number) => pad.l + ((s - xmin) / (xmax - xmin)) * (W - pad.l - pad.r);
   const py = (p: number) => pad.t + (1 - (p - ymin) / (ymax - ymin)) * (H - pad.t - pad.b);
 
   const line = CURVE.map((d, i) => `${i === 0 ? "M" : "L"} ${px(d.step).toFixed(1)} ${py(d.ppl).toFixed(1)}`).join(" ");
   const area = `${line} L ${px(xmax).toFixed(1)} ${py(ymin).toFixed(1)} L ${px(xmin).toFixed(1)} ${py(ymin).toFixed(1)} Z`;
-  const gridY = [9, 11, 13, 15, 17];
+  const gridY = [7, 9, 11, 13, 15, 17];
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Held-out perplexity over training steps" style={{ maxWidth: W }}>
@@ -112,14 +112,14 @@ export function TrainingCurve() {
       ))}
 
       {/* final annotation */}
-      <text x={px(xmax) - 6} y={py(9.13) - 14} textAnchor="end" className="stat-num" fontSize="16" fill="var(--green)">
-        9.13
+      <text x={px(xmax) - 6} y={py(CURVE[CURVE.length - 1].ppl) - 14} textAnchor="end" className="stat-num" fontSize="16" fill="var(--green)">
+        {CURVE[CURVE.length - 1].ppl}
       </text>
 
       {/* x labels */}
-      {[1000, 4000, 7778].map((s) => (
+      {[1000, 20000, xmax].map((s) => (
         <text key={s} x={px(s)} y={H - 14} textAnchor="middle" fontSize="10" fill="var(--faint)" fontFamily="var(--font-mono)">
-          {s === 7778 ? "7.8k" : `${s / 1000}k`}
+          {s === xmax ? `${(s / 1000).toFixed(1)}k` : `${s / 1000}k`}
         </text>
       ))}
       <text x={(W + pad.l) / 2} y={H - 1} textAnchor="middle" fontSize="9.5" letterSpacing="0.16em" fill="var(--faint)" fontFamily="var(--font-mono)">
