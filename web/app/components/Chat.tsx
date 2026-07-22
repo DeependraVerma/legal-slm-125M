@@ -1,15 +1,34 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CHAT_PRESETS, CHAT_URL } from "@/app/lib/model";
-import { ensureLoaded, generateChat, isModelLoaded } from "@/app/lib/browserModel";
+import * as browserModel125m from "@/app/lib/browserModel";
+import * as browserModel500m from "@/app/lib/browserModel500m";
 
 type Role = "user" | "assistant";
 type Msg = { role: Role; content: string };
 type Status = "idle" | "waking" | "streaming";
 type Mode = "server" | "browser";
 
-export default function Chat() {
+// Each model gets its own browserModel*.ts module (own singleton state) so
+// switching pages in one tab never cross-contaminates a loaded model. Picked
+// here (inside the client component) rather than passed as a prop, since a
+// module-of-functions can't cross the server->client boundary from page.tsx.
+const BROWSER_MODELS = { "125m": browserModel125m, "500m": browserModel500m } as const;
+
+export default function Chat({
+  variant,
+  presets,
+  chatUrl,
+  hasServerMode = true,
+  caveat,
+}: {
+  variant: "125m" | "500m";
+  presets: readonly string[];
+  chatUrl?: string;
+  hasServerMode?: boolean;
+  caveat: string;
+}) {
+  const browserModel = BROWSER_MODELS[variant];
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -48,13 +67,17 @@ export default function Chat() {
     // ---- in-browser (transformers.js) ----
     if (mode === "browser") {
       try {
-        if (!isModelLoaded()) setLoadingModel(true);
-        await ensureLoaded(setDlProgress);
+        if (!browserModel.isModelLoaded()) setLoadingModel(true);
+        await browserModel.ensureLoaded(setDlProgress);
         setLoadingModel(false);
         setStatus("streaming");
-        await generateChat(message, appendToken);
+        await browserModel.generateChat(message, appendToken);
       } catch {
-        setError("The in-browser model couldn't load. Your browser may not support it. Try Server mode instead.");
+        setError(
+          hasServerMode
+            ? "The in-browser model couldn't load. Your browser may not support it. Try Server mode instead."
+            : "The in-browser model couldn't load. Your browser may not support in-browser inference (WebAssembly)."
+        );
         dropEmptyAssistant();
       } finally {
         setStatus("idle");
@@ -67,7 +90,7 @@ export default function Chat() {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     try {
-      const res = await fetch(`${CHAT_URL}/chat`, {
+      const res = await fetch(`${chatUrl}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, max_new_tokens: 200, temperature: 0.7 }),
@@ -119,10 +142,12 @@ export default function Chat() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap", marginBottom: "0.35rem" }}>
         <span className="eyebrow">Ask the assistant</span>
         <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
-          <div className="seg">
-            <button data-active={mode === "server"} onClick={() => setMode("server")} disabled={busy}>Server</button>
-            <button data-active={mode === "browser"} onClick={() => setMode("browser")} disabled={busy}>⚡ In-browser</button>
-          </div>
+          {hasServerMode && (
+            <div className="seg">
+              <button data-active={mode === "server"} onClick={() => setMode("server")} disabled={busy}>Server</button>
+              <button data-active={mode === "browser"} onClick={() => setMode("browser")} disabled={busy}>⚡ In-browser</button>
+            </div>
+          )}
           {messages.length > 0 && (
             <button onClick={reset} className="mono" style={{ fontSize: "0.72rem", color: "var(--faint)", background: "none", border: "none", cursor: "pointer" }}>
               new chat ↺
@@ -163,7 +188,7 @@ export default function Chat() {
 
       {/* presets */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem", margin: "1.1rem 0 0.85rem" }}>
-        {CHAT_PRESETS.map((p) => (
+        {presets.map((p) => (
           <button key={p} className="chip" onClick={() => send(p)} disabled={busy}>
             {p.length > 40 ? p.slice(0, 38) + "…" : p}
           </button>
@@ -187,8 +212,7 @@ export default function Chat() {
       </form>
 
       <p style={{ marginTop: "0.9rem", fontSize: "0.8rem", color: "var(--faint)", lineHeight: 1.6 }}>
-        A 125M fine-tuned model. It answers one question at a time and will confidently
-        invent case names and figures. Not legal or financial advice.
+        {caveat}
       </p>
     </div>
   );

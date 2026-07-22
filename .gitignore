@@ -19,6 +19,7 @@ data_500m/
 hf_export/
 onnx_export/
 onnx_export_sft/
+onnx_export_500m_sft/
 sft_export/
 onnx_sft/
 onnx_upload_sft/

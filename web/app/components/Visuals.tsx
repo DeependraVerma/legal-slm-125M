@@ -1,13 +1,23 @@
 import { CURVE, MIX } from "@/app/lib/model";
 
+type MixItem = { name: string; pct: number; tone: string; src: string };
+
 /* ---------- Data-mix donut ---------- */
-export function DonutMix() {
+export function DonutMix({
+  mix = MIX,
+  centerValue = "2.04B",
+  centerLabel = "TOKENS",
+}: {
+  mix?: readonly MixItem[];
+  centerValue?: string;
+  centerLabel?: string;
+}) {
   const r = 66;
   const cx = 90;
   const cy = 90;
   const C = 2 * Math.PI * r;
   let offset = 0;
-  const arcs = MIX.map((m) => {
+  const arcs = mix.map((m) => {
     const len = (m.pct / 100) * C;
     const seg = {
       tone: m.tone,
@@ -37,14 +47,14 @@ export function DonutMix() {
           />
         ))}
         <text x={cx} y={cy - 4} textAnchor="middle" className="stat-num" fontSize="24" fill="var(--ink)">
-          2.04B
+          {centerValue}
         </text>
         <text x={cx} y={cy + 16} textAnchor="middle" fontSize="9" letterSpacing="0.14em" fill="var(--faint)" fontFamily="var(--font-mono)">
-          TOKENS
+          {centerLabel}
         </text>
       </svg>
       <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.9rem" }}>
-        {MIX.map((m) => (
+        {mix.map((m) => (
           <li key={m.name} style={{ display: "flex", alignItems: "baseline", gap: "0.7rem" }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: m.tone, flexShrink: 0, transform: "translateY(1px)" }} />
             <span>
@@ -126,5 +136,43 @@ export function TrainingCurve() {
         OPTIMIZER STEP →
       </text>
     </svg>
+  );
+}
+
+/* ---------- Per-source perplexity, 500M vs 125M ---------- */
+export function PerSourcePplBars({
+  data,
+}: {
+  data: readonly { source: string; ppl500: number; ppl125: number | null }[];
+}) {
+  const max = Math.max(...data.map((d) => Math.max(d.ppl500, d.ppl125 ?? 0))) * 1.08;
+  return (
+    <div style={{ display: "grid", gap: "1.1rem" }}>
+      {data.map((d) => (
+        <div key={d.source}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.4rem" }}>
+            <span style={{ fontSize: "0.88rem", color: "var(--ink)" }}>{d.source}</span>
+            <span className="mono tnum" style={{ fontSize: "0.76rem", color: "var(--faint)" }}>
+              {d.ppl125 !== null ? `${d.ppl125} → ` : ""}
+              <span style={{ color: "var(--green)" }}>{d.ppl500}</span>
+            </span>
+          </div>
+          <div style={{ display: "grid", gap: "3px" }}>
+            {d.ppl125 !== null && (
+              <div style={{ height: 8, borderRadius: 2, background: "var(--paper-3)", border: "1px solid var(--line-2)", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", inset: 0, width: `${(d.ppl125 / max) * 100}%`, background: "var(--faint)", opacity: 0.45 }} />
+              </div>
+            )}
+            <div style={{ height: 8, borderRadius: 2, background: "var(--paper-3)", border: "1px solid var(--line-2)", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", inset: 0, width: `${(d.ppl500 / max) * 100}%`, background: "var(--green)" }} />
+            </div>
+          </div>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: "1.25rem", fontSize: "0.72rem", color: "var(--faint)", marginTop: "0.3rem" }}>
+        <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "var(--faint)", opacity: 0.45, marginRight: 6, transform: "translateY(1px)" }} />125M</span>
+        <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "var(--green)", marginRight: 6, transform: "translateY(1px)" }} />500M</span>
+      </div>
+    </div>
   );
 }
