@@ -4,6 +4,7 @@
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{array}
+\usepackage{tabularx}
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
@@ -13,6 +14,7 @@
 
 \setlength{\parskip}{0.4em}
 \setlength{\parindent}{0pt}
+\setlength{\emergencystretch}{3em}
 
 \title{\textbf{From-Scratch Small Language Models for Legal and Financial Text:\\
 A Staged Pretraining Recipe and an Honest Account of Their Limits}}
@@ -108,7 +110,8 @@ Our contributions:
 
 \textbf{Small and efficient language models.} A line of recent work shows
 that careful data curation and training schedules can substitute for
-scale: Pythia, OLMo, TinyLlama, Phi, MiniCPM \citep{hu2024minicpm}, and
+scale: Pythia \citep{biderman2023pythia}, OLMo, TinyLlama
+\citep{zhang2024tinyllama}, Phi, MiniCPM \citep{hu2024minicpm}, and
 SmolLM2 \citep{allal2025smollm2} all report staged or curriculum-style
 data schedules as part of achieving strong small-model results. We adopt
 MiniCPM's Warmup-Stable-Decay (WSD) scheduling idea directly, applying it
@@ -159,6 +162,7 @@ paper characterizes purely parametric capability at small scale, which we
 believe is a necessary baseline before layering retrieval on top, and we
 leave a retrieval-augmented extension to future work.
 
+\begin{sloppypar}
 \textbf{General-purpose benchmarks and evaluation infrastructure.} We use
 \texttt{lm-evaluation-harness} \citep{eval-harness}, the framework behind
 a widely used public LLM leaderboard, and its built-in HellaSwag
@@ -166,6 +170,7 @@ a widely used public LLM leaderboard, and its built-in HellaSwag
 \citep{bisk2020piqa}, and MMLU \citep{hendrycks2021mmlu} tasks as a
 peer-comparison reference point against other small models, separate from
 our legal-domain-specific claims.
+\end{sloppypar}
 
 \section{Architecture}
 
@@ -214,14 +219,16 @@ The 125M model pretrains on three sources: US case law
 a 35\%/42\%/23\% mix, totalling 2.04B unique tokens over 2 epochs
 (4.08B tokens seen), reaching a held-out perplexity of 7.76.
 
+\begin{sloppypar}
 The 500M model adds two large bulk sources -- SEC 10-K/10-Q/8-K filings
 (\texttt{TeraflopAI/SEC-EDGAR}, Apache-2.0) and additional US case law
-(\texttt{common-pile/caselaw\_access\_project}, public domain) -- for
+(\texttt{common-pile/caselaw\_\allowbreak access\_\allowbreak project}, public domain) -- for
 five sources totalling 14.7B unique tokens after cleaning, deduplication,
 and 13-gram decontamination against CaseHOLD and LexGLUE (see
 Section~\ref{sec:contamination-method} for why this specific decontamination
 step matters). Given the larger unique-token budget, this model trains
 for a single epoch rather than two.
+\end{sloppypar}
 
 \subsection{A measured regression from naive mixing}
 \label{sec:flatmix}
@@ -409,8 +416,8 @@ categories, on the deployed fine-tuned checkpoints.
 
 \subsection{Task selection}
 
-HellaSwag, ARC-Easy, PIQA, and MMLU's \texttt{professional\_law},
-\texttt{jurisprudence}, and \texttt{international\_law} subjects are
+HellaSwag, ARC-Easy, PIQA, and MMLU's \texttt{professional\_\allowbreak law},
+\texttt{jurisprudence}, and \texttt{international\_\allowbreak law} subjects are
 built into \texttt{lm-evaluation-harness} and run unmodified. CaseHOLD
 and LegalBench required custom task configuration, since neither has an
 existing harness integration; both configs, along with all raw logs, are
@@ -440,8 +447,8 @@ selected 12 tasks matching two criteria: binary yes/no answer format
 (scoreable as simple 2-way multiple choice) and contract-focused subject
 matter, matching this project's own CUAD/LEDGAR training domain: nine
 ContractNLI clause-entailment tasks, \texttt{contract\_qa},
-\texttt{consumer\_contracts\_qa}, and
-\texttt{citation\_prediction\_classification}. Each task's prompt is the
+\texttt{consumer\_\allowbreak contracts\_\allowbreak qa}, and
+\texttt{citation\_\allowbreak prediction\_\allowbreak classification}. Each task's prompt is the
 benchmark's own official prompt template (including its baked-in few-shot
 exemplars), taken verbatim from the LegalBench source repository, not
 rephrased, so scores reflect the benchmark's intended evaluation format.
@@ -463,6 +470,71 @@ PIQA & \textbf{60.2\%} & 59.6\% \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Table~\ref{tab:general} alone cannot say whether these numbers are typical
+for a model this size, since it only compares our two models to each
+other. Table~\ref{tab:baselines} places both against externally published
+small models on the same three tasks.
+
+\begin{table}[h]
+\centering
+\caption{External baselines for HellaSwag, ARC-Easy, and PIQA (zero-shot),
+compared against this work's two from-scratch models. Baseline numbers are
+as reported in the cited papers; none of those papers explicitly labels the
+metric as acc or acc\_norm, though magnitudes are consistent with the
+acc\_norm convention standard for these tasks. SmolLM2 rows ($\dagger$)
+report an ARC easy+challenge average, not ARC-Easy alone, and use the
+\texttt{lighteval} framework rather than \texttt{lm-evaluation-harness}. No
+verifiable zero-shot table for the original GPT-2 (124M) checkpoint across
+all three tasks could be located in a citable paper or model card; GPT-Neo-125M,
+its closest well-documented open reproduction, is shown instead.}
+\label{tab:baselines}
+\begin{tabular}{llrrrl}
+\toprule
+\textbf{Model} & \textbf{Params} & \textbf{HellaSwag} & \textbf{ARC-Easy} & \textbf{PIQA} & \textbf{Source} \\
+\midrule
+GPT-Neo-125M       & 125M   & 29.7\% & 40.7\% & 62.5\% & \citep{liu2024mobilellm} \\
+OPT-125M           & 125M   & 31.1\% & 41.3\% & 62.0\% & \citep{liu2024mobilellm} \\
+Pythia-160M        & 160M   & 29.9\% & 40.0\% & 62.0\% & \citep{liu2024mobilellm} \\
+Cerebras-GPT-111M  & 111M   & 26.8\% & 38.0\% & 59.4\% & \citep{dey2023cerebrasgpt} \\
+\textbf{Ours}      & 125.8M & 29.4\% & 41.7\% & 60.2\% & this work \\
+\midrule
+OPT-350M           & 350M   & 36.2\% & 41.9\% & 64.8\% & \citep{liu2024mobilellm} \\
+Pythia-410M        & 410M   & 40.1\% & 47.1\% & 67.2\% & \citep{liu2024mobilellm} \\
+\textbf{Ours}      & 528.5M & 32.4\% & 44.5\% & 59.6\% & this work \\
+\midrule
+SmolLM2-135M$^\dagger$ & 135M & 42.1\% & 43.9\% & 68.4\% & \citep{allal2025smollm2} \\
+SmolLM2-360M$^\dagger$ & 360M & 54.5\% & 53.0\% & 71.7\% & \citep{allal2025smollm2} \\
+TinyLlama-1.1B     & 1.1B   & 59.2\% & 55.3\% & 73.3\% & \citep{zhang2024tinyllama} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Placed against externally published small models, both of our models land
+squarely in the range other from-scratch models of comparable size occupy
+-- not ahead, not behind by a wide margin. Our 125M model's 29.4\% HellaSwag
+and 60.2\% PIQA sit within a point or two of GPT-Neo-125M, OPT-125M,
+Pythia-160M, and Cerebras-GPT-111M \citep{liu2024mobilellm,
+dey2023cerebrasgpt}; its 41.7\% ARC-Easy is toward the higher end of that
+group. The 500M model's improvement over the 125M model on HellaSwag and
+ARC-Easy (but not PIQA) mirrors the same non-monotonic pattern visible in
+the OPT and Pythia size progressions in these same baselines, where PIQA in
+particular saturates early and stops tracking parameter count. Both of our
+models trail SmolLM2 and TinyLlama by a substantial margin on all three
+tasks -- but those are trained on 2-11 trillion tokens of general web, code,
+and math data rather than our from-scratch, general-commonsense-agnostic
+legal/financial corpus, so that gap speaks to training-data composition more
+than to architecture or scale. We note that even these baseline numbers are
+not fully stable across sources: \citet{liu2024mobilellm} and
+\citet{dey2023cerebrasgpt} report meaningfully different zero-shot HellaSwag
+scores for the identical Pythia-410M checkpoint (40.1\% vs.\ 33.3\%) and a
+smaller but real gap for OPT-350M (36.2\% vs.\ 32.0\%), in our own
+cross-check of both papers -- a reminder that absolute commonsense-benchmark
+numbers are sensitive to
+harness version and prompt template even when nothing about the model
+itself has changed -- the same lesson Section~\ref{sec:contamination-method}
+draws about contamination checking applies here too: a number is only as
+trustworthy as the method that produced it.
 
 \begin{table}[h]
 \centering
@@ -599,16 +671,15 @@ rather than treating the count alone as a verdict:
 \centering
 \caption{Attribution of the 356 strict (40-word) contamination hits.}
 \label{tab:contam}
-\begin{tabular}{lrl}
+\begin{tabularx}{\textwidth}{l r X}
 \toprule
 \textbf{LegalBench task} & \textbf{Docs affected} & \textbf{What it actually is} \\
 \midrule
 \texttt{consumer\_contracts\_qa} & 3 / 396 & A real, publicly available consumer-facing company's Terms of Service \\
 \texttt{contract\_nli\_limited\_use} & 1 / 208 & A standard, widely reused NDA template \\
-\texttt{citation\_prediction\_classification} & 1 / 108 & A real historic court opinion, present in \\
- & & both datasets independently \\
+\texttt{citation\_prediction\_classification} & 1 / 108 & A real historic court opinion, present in both datasets independently \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 In total, 5 of 1{,}853 evaluated documents (0.27\%) show genuine
@@ -616,7 +687,7 @@ long-run overlap, concentrated in 3 of the 12 tasks. Each is independently
 explainable by the nature of its source: a famous, widely-republished
 company Terms of Service document; a standard legal template reused
 across many real, unrelated contracts; and a historic court opinion that
-both LegalBench (whose \texttt{citation\_prediction\_classification} task
+both LegalBench (whose \texttt{citation\_\allowbreak prediction\_\allowbreak classification} task
 literally consists of real historical case-law excerpts) and our
 pretraining corpus (built from the same public case-law record)
 independently and unavoidably contain. None of this constitutes narrow
