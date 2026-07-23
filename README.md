@@ -430,8 +430,7 @@ GPUs) and judging on a mix of **NVIDIA Nemotron-Ultra-550B** (genuinely
 independent verification, where its own free-tier concurrency cap allowed)
 falling back to the same Llama-70B when it didn't. Real cost: **$0**. The
 honest tradeoff: a meaningful fraction of judging ended up as the generator
-self-grading rather than fully independent verification — see
-`.claude/skills/legal-slm-build/phase_wise_tasks.md` for the blow-by-blow.
+self-grading rather than fully independent verification.
 
 Realized dataset:
 
