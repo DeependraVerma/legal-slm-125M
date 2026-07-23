@@ -191,7 +191,6 @@ class TrainConfig:
 
 TRAIN = TrainConfig()
 
-PRETRAIN_GPU = "B200"
 PRETRAIN_GPU_COUNT = 8
 BUDGET_CAP_USD = 40.0
 
