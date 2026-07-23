@@ -1,0 +1,847 @@
+{
+  "results": {
+    "legalbench_citation_prediction_classification": {
+      "name": "legalbench_citation_prediction_classification",
+      "alias": "legalbench_citation_prediction_classification",
+      "sample_len": 108,
+      "acc,none": 0.5,
+      "acc_stderr,none": 0.04833682445228318
+    },
+    "legalbench_consumer_contracts_qa": {
+      "name": "legalbench_consumer_contracts_qa",
+      "alias": "legalbench_consumer_contracts_qa",
+      "sample_len": 396,
+      "acc,none": 0.5858585858585859,
+      "acc_stderr,none": 0.024784044644645002
+    },
+    "legalbench_contract_nli_confidentiality_of_agreement": {
+      "name": "legalbench_contract_nli_confidentiality_of_agreement",
+      "alias": "legalbench_contract_nli_confidentiality_of_agreement",
+      "sample_len": 82,
+      "acc,none": 0.5,
+      "acc_stderr,none": 0.05555555555555555
+    },
+    "legalbench_contract_nli_explicit_identification": {
+      "name": "legalbench_contract_nli_explicit_identification",
+      "alias": "legalbench_contract_nli_explicit_identification",
+      "sample_len": 109,
+      "acc,none": 0.23853211009174313,
+      "acc_stderr,none": 0.04100977102934034
+    },
+    "legalbench_contract_nli_limited_use": {
+      "name": "legalbench_contract_nli_limited_use",
+      "alias": "legalbench_contract_nli_limited_use",
+      "sample_len": 208,
+      "acc,none": 0.6057692307692307,
+      "acc_stderr,none": 0.03396594414205619
+    },
+    "legalbench_contract_nli_no_licensing": {
+      "name": "legalbench_contract_nli_no_licensing",
+      "alias": "legalbench_contract_nli_no_licensing",
+      "sample_len": 162,
+      "acc,none": 0.7037037037037037,
+      "acc_stderr,none": 0.03598695425263615
+    },
+    "legalbench_contract_nli_notice_on_compelled_disclosure": {
+      "name": "legalbench_contract_nli_notice_on_compelled_disclosure",
+      "alias": "legalbench_contract_nli_notice_on_compelled_disclosure",
+      "sample_len": 142,
+      "acc,none": 0.6619718309859155,
+      "acc_stderr,none": 0.039837001756988594
+    },
+    "legalbench_contract_nli_permissible_copy": {
+      "name": "legalbench_contract_nli_permissible_copy",
+      "alias": "legalbench_contract_nli_permissible_copy",
+      "sample_len": 87,
+      "acc,none": 0.3793103448275862,
+      "acc_stderr,none": 0.0523221247095386
+    },
+    "legalbench_contract_nli_return_of_confidential_information": {
+      "name": "legalbench_contract_nli_return_of_confidential_information",
+      "alias": "legalbench_contract_nli_return_of_confidential_information",
+      "sample_len": 66,
+      "acc,none": 0.5,
+      "acc_stderr,none": 0.06201736729460421
+    },
+    "legalbench_contract_nli_sharing_with_employees": {
+      "name": "legalbench_contract_nli_sharing_with_employees",
+      "alias": "legalbench_contract_nli_sharing_with_employees",
+      "sample_len": 170,
+      "acc,none": 0.5352941176470588,
+      "acc_stderr,none": 0.03836559766738727
+    },
+    "legalbench_contract_nli_survival_of_obligations": {
+      "name": "legalbench_contract_nli_survival_of_obligations",
+      "alias": "legalbench_contract_nli_survival_of_obligations",
+      "sample_len": 157,
+      "acc,none": 0.7133757961783439,
+      "acc_stderr,none": 0.036203729940051284
+    },
+    "legalbench_contract_qa": {
+      "name": "legalbench_contract_qa",
+      "alias": "legalbench_contract_qa",
+      "sample_len": 80,
+      "acc,none": 0.475,
+      "acc_stderr,none": 0.05618403304872527
+    }
+  },
+  "group_subtasks": {},
+  "configs": {
+    "legalbench_citation_prediction_classification": {
+      "task": "legalbench_citation_prediction_classification",
+      "dataset_path": "nguha/legalbench",
+      "dataset_name": "citation_prediction_classification",
+      "test_split": "test",
+      "doc_to_text": "Can the case can be used as a citation for the provided text?\n\nText: For hostile-work-environment claims, an employee must show that: \"(1) she belongs to a protected class; (2) she was subjected to harassment; (3) the harassment was based on sex; (4) the harassment affected a term, condition, or privilege of employment; and (5) the employer knew or should have known of the harassment and failed to take remedial action.\"\nCitation: Saketkoo v. Admins. of Tulane Educ. Fund\nSupportive? Yes\n\nText: [T]he law is settled that as a general matter the First Amendment prohibits government officials from subjecting an individual to retaliatory actions . . . for speaking out.\nCitation: Feist v. La., Dep't of Justice, Off. of the Att'y Gen.\nSupportive? No\n\nText: {{text}}\nCitation: {{citation}}\nSupportive?",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "Yes",
+        "No"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "Can the case can be used as a citation for the provided text?\n\nText: For hostile-work-environment claims, an employee must show that: \"(1) she belongs to a protected class; (2) she was subjected to harassment; (3) the harassment was based on sex; (4) the harassment affected a term, condition, or privilege of employment; and (5) the employer knew or should have known of the harassment and failed to take remedial action.\"\nCitation: Saketkoo v. Admins. of Tulane Educ. Fund\nSupportive? Yes\n\nText: [T]he law is settled that as a general matter the First Amendment prohibits government officials from subjecting an individual to retaliatory actions . . . for speaking out.\nCitation: Feist v. La., Dep't of Justice, Off. of the Att'y Gen.\nSupportive? No\n\nText: {{text}}\nCitation: {{citation}}\nSupportive?",
+        "doc_to_choice": [
+          "Yes",
+          "No"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "pretrained": "data_500m/sft/model",
+        "dtype": "bfloat16",
+        "config_source": "benchmarks/custom_tasks/legalbench/legalbench_citation_prediction_classification.yaml"
+      }
+    },
+    "legalbench_consumer_contracts_qa": {
+      "task": "legalbench_consumer_contracts_qa",
+      "dataset_path": "nguha/legalbench",
+      "dataset_name": "consumer_contracts_qa",
+      "test_split": "test",
+      "doc_to_text": "{{contract}}\n\nQuestion: {{question}} Answer Yes or No.\nAnswer:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "Yes",
+        "No"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{contract}}\n\nQuestion: {{question}} Answer Yes or No.\nAnswer:",
+        "doc_to_choice": [
+          "Yes",
+          "No"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "pretrained": "data_500m/sft/model",
+        "dtype": "bfloat16",
+        "config_source": "benchmarks/custom_tasks/legalbench/legalbench_consumer_contracts_qa.yaml"
+      }
+    },
+    "legalbench_contract_nli_confidentiality_of_agreement": {
+      "task": "legalbench_contract_nli_confidentiality_of_agreement",
+      "dataset_path": "nguha/legalbench",
+      "dataset_name": "contract_nli_confidentiality_of_agreement",
+      "test_split": "test",
+      "doc_to_text": "Identify if the clause provides that the Receiving Party shall not disclose the fact that Agreement was agreed or negotiated.\n\nClause: Confidential Information shall mean the following: c) the fact that the Disclosee (or any of their Representatives) are or have been involved in the analysis of, in meetings or negotiations related to the Sale, the contents, time and status of such negotiations, and generally any fact concerning the Sale. \nLabel: Yes\n\nClause: 2.1. Confidential Information means all confidential information relating to the Purpose which the Disclosing Party or any of its Affiliates, discloses or makes available, to the Receiving Party or any of its Affiliates, before, on or after the Effective Date.  This includes: a) the fact that discussions and negotiations are taking place concerning the Purpose and the status of those discussions and negotiations; \nLabel: Yes\n\nClause: 3.5. \"Confidential information\" means any information of whatever form relating to the Project or Discloser or any of its Affiliates or Clients, supplied or made available by Discloser or on its behalf to recipient or Recipient Representatives, copies of any such information regardless of whether such information is identified as confidential or not; and information regarding: 3.5.3. Any information including those parts of analyses, compilations, studies and other documents which contain, reflect or are derived from such information referred to in this Clause 3.4 or discussions and negotiations relating to the project. \nLabel: Yes\n\nClause: 5.1  Save as otherwise permitted herein, a Receiving Party shall not, and shall procure that its  Personnel do not, at any time without the Disclosing Party’s prior written consent: (b) disclose to any person:  - (i) the fact that discussions or negotiations are taking place between the Parties; \nLabel: Yes\n\nClause: This Agreement will come into force on the [date of its execution]6 and will continue in force [indefinitely, unless and until terminated in accordance with Clause [5] / until [date] [event], upon which it will terminate automatically, unless terminated in accordance with Clause [5]]. Upon termination: (b) all the provisions of this Agreement will cease to have effect, save that the following provisions of this Agreement will survive and continue to have effect (in accordance with their terms or otherwise indefinitely): Clauses [1, 3, 5.2 to 5.4, and 6]. \nLabel: No\n\nClause: The Receiving Party agrees  (iii) not to make any use whatsoever at any time of such Proprietary Information except to evaluate internally whether to enter into a proposed business transaction with the Disclosing Party without the prior written permission of the disclosing party,  \nLabel: No\n\nClause: The Receiving Party shall immediately return to the Disclosing Party all written Confidential Information of the Disclosing Party and any and all records, notes and other written, printed or tangible materials pertaining to such Confidential Information upon receipt of a written request from the Disclosing Party.  \nLabel: No\n\nClause: You will treat confidentially any information (whether written or oral) that either we or our financial advisor, Mesirow Financial, Inc. (“Mesirow”), or our other representatives furnish to you in connection with a Possible Transaction, together with analyses, compilations, studies or other documents prepared by you, or by your representatives (as defined hereinafter) which contain or otherwise reflect such information or your review of, or interest in, the Company (collectively, the “Evaluation Materials”).  The term “Evaluation Materials” includes information furnished to you orally or in writing (whatever the form or storage medium) or gathered by inspection, and regardless of whether such information is specifically identified as “confidential”.  \nLabel: No\n\nClause: {{text}}\nLabel:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "Yes",
+        "No"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "Identify if the clause provides that the Receiving Party shall not disclose the fact that Agreement was agreed or negotiated.\n\nClause: Confidential Information shall mean the following: c) the fact that the Disclosee (or any of their Representatives) are or have been involved in the analysis of, in meetings or negotiations related to the Sale, the contents, time and status of such negotiations, and generally any fact concerning the Sale. \nLabel: Yes\n\nClause: 2.1. Confidential Information means all confidential information relating to the Purpose which the Disclosing Party or any of its Affiliates, discloses or makes available, to the Receiving Party or any of its Affiliates, before, on or after the Effective Date.  This includes: a) the fact that discussions and negotiations are taking place concerning the Purpose and the status of those discussions and negotiations; \nLabel: Yes\n\nClause: 3.5. \"Confidential information\" means any information of whatever form relating to the Project or Discloser or any of its Affiliates or Clients, supplied or made available by Discloser or on its behalf to recipient or Recipient Representatives, copies of any such information regardless of whether such information is identified as confidential or not; and information regarding: 3.5.3. Any information including those parts of analyses, compilations, studies and other documents which contain, reflect or are derived from such information referred to in this Clause 3.4 or discussions and negotiations relating to the project. \nLabel: Yes\n\nClause: 5.1  Save as otherwise permitted herein, a Receiving Party shall not, and shall procure that its  Personnel do not, at any time without the Disclosing Party’s prior written consent: (b) disclose to any person:  - (i) the fact that discussions or negotiations are taking place between the Parties; \nLabel: Yes\n\nClause: This Agreement will come into force on the [date of its execution]6 and will continue in force [indefinitely, unless and until terminated in accordance with Clause [5] / until [date] [event], upon which it will terminate automatically, unless terminated in accordance with Clause [5]]. Upon termination: (b) all the provisions of this Agreement will cease to have effect, save that the following provisions of this Agreement will survive and continue to have effect (in accordance with their terms or otherwise indefinitely): Clauses [1, 3, 5.2 to 5.4, and 6]. \nLabel: No\n\nClause: The Receiving Party agrees  (iii) not to make any use whatsoever at any time of such Proprietary Information except to evaluate internally whether to enter into a proposed business transaction with the Disclosing Party without the prior written permission of the disclosing party,  \nLabel: No\n\nClause: The Receiving Party shall immediately return to the Disclosing Party all written Confidential Information of the Disclosing Party and any and all records, notes and other written, printed or tangible materials pertaining to such Confidential Information upon receipt of a written request from the Disclosing Party.  \nLabel: No\n\nClause: You will treat confidentially any information (whether written or oral) that either we or our financial advisor, Mesirow Financial, Inc. (“Mesirow”), or our other representatives furnish to you in connection with a Possible Transaction, together with analyses, compilations, studies or other documents prepared by you, or by your representatives (as defined hereinafter) which contain or otherwise reflect such information or your review of, or interest in, the Company (collectively, the “Evaluation Materials”).  The term “Evaluation Materials” includes information furnished to you orally or in writing (whatever the form or storage medium) or gathered by inspection, and regardless of whether such information is specifically identified as “confidential”.  \nLabel: No\n\nClause: {{text}}\nLabel:",
+        "doc_to_choice": [
+          "Yes",
+          "No"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "pretrained": "data_500m/sft/model",
+        "dtype": "bfloat16",
+        "config_source": "benchmarks/custom_tasks/legalbench/legalbench_contract_nli_confidentiality_of_agreement.yaml"
+      }
+    },
+    "legalbench_contract_nli_explicit_identification": {
+      "task": "legalbench_contract_nli_explicit_identification",
+      "dataset_path": "nguha/legalbench",
+      "dataset_name": "contract_nli_explicit_identification",
+      "test_split": "test",
+      "doc_to_text": "Identify if the clause provides that all Confidential Information shall be expressly identified by the Disclosing Party.\n\nClause: Confidential Information - information of whatever kind and in whatever form contained (and includes in particular but without prejudice to the generality of the foregoing, documents, drawings, computerized information, films, tapes, specifications, designs, models, equipment or data of any kind) which is clearly identified by the Disclosing Party as confidential by an appropriate legend or if orally disclosed then upon disclosure or within 30 days of such oral disclosure identified in writing by the Disclosing Party as confidential. \nLabel: Yes\n\nClause: When used herein, Confidential Information shall mean any information and data (in electronic form, in hard copy or given verbally) of a confidential or proprietary nature which is disclosed by the Disclosing Party to the Receiving Party, including but not limited to, group corporate strategy and initiatives, customer information, Target information, proprietary technical, financial, personnel and/or commercial information with respect to the Proposed Transaction, Transnet or the Target and any information which is disclosed pursuant to this Agreement and marked “Confidential” by the Disclosing Party.  \nLabel: Yes\n\nClause: If Confidential Information is in written form, the Disclosing Party shall label or stamp the materials with the word \"Confidential\" or some similar warning.  If Confidential Information is transmitted orally, the Disclosing Party shall promptly provide writing indicating that such oral communication constituted Confidential Information. \nLabel: Yes\n\nClause: (a) “Confidential Information” means any proprietary information that is disclosed in writing by Disclosing Party (defined herein) to Receiving Party (defined herein) and is duly and recognizably marked “Confidential” on each document / sheet.  \nLabel: Yes\n\nClause: For purposes of this Agreement, \"Confidential Information\" means any data or information that is proprietary to the Parties and not generally known to the public, whether in tangible or intangible form, whenever and however disclosed, including but not limited to: \nLabel: No\n\nClause: The term “Confidential Information” as used herein means all nonpublic information relating to the Subject Matter that is disclosed by either party, its Affiliates (as defined below), or their agents (where applicable, collectively referred to as the “Disclosing Party”), directly or indirectly, in writing, orally or by inspection of premises or tangible objects to the other party (the “Recipient”) that is:  (i) marked confidential or proprietary, or  (ii) given the nature of the information or the circumstances surrounding its disclosure, reasonably should be deemed confidential.  \nLabel: No\n\nClause: 4. The undertakings in clauses 2 and 3 above apply to all of the information disclosed by the Discloser to the Recipient, regardless of the way or form in which it is disclosed or recorded but they do not apply to: \nLabel: No\n\nClause: 1. Disclosure: Recipient agrees not to disclose and the Discloser agrees to let the Recipient have the access to the Confidential Information as identified and reduced in writing or provided verbally or in any other way not reduced in writing at the time of such disclosure of the information. \nLabel: No\n\nClause: {{text}}\nLabel:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "Yes",
+        "No"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "Identify if the clause provides that all Confidential Information shall be expressly identified by the Disclosing Party.\n\nClause: Confidential Information - information of whatever kind and in whatever form contained (and includes in particular but without prejudice to the generality of the foregoing, documents, drawings, computerized information, films, tapes, specifications, designs, models, equipment or data of any kind) which is clearly identified by the Disclosing Party as confidential by an appropriate legend or if orally disclosed then upon disclosure or within 30 days of such oral disclosure identified in writing by the Disclosing Party as confidential. \nLabel: Yes\n\nClause: When used herein, Confidential Information shall mean any information and data (in electronic form, in hard copy or given verbally) of a confidential or proprietary nature which is disclosed by the Disclosing Party to the Receiving Party, including but not limited to, group corporate strategy and initiatives, customer information, Target information, proprietary technical, financial, personnel and/or commercial information with respect to the Proposed Transaction, Transnet or the Target and any information which is disclosed pursuant to this Agreement and marked “Confidential” by the Disclosing Party.  \nLabel: Yes\n\nClause: If Confidential Information is in written form, the Disclosing Party shall label or stamp the materials with the word \"Confidential\" or some similar warning.  If Confidential Information is transmitted orally, the Disclosing Party shall promptly provide writing indicating that such oral communication constituted Confidential Information. \nLabel: Yes\n\nClause: (a) “Confidential Information” means any proprietary information that is disclosed in writing by Disclosing Party (defined herein) to Receiving Party (defined herein) and is duly and recognizably marked “Confidential” on each document / sheet.  \nLabel: Yes\n\nClause: For purposes of this Agreement, \"Confidential Information\" means any data or information that is proprietary to the Parties and not generally known to the public, whether in tangible or intangible form, whenever and however disclosed, including but not limited to: \nLabel: No\n\nClause: The term “Confidential Information” as used herein means all nonpublic information relating to the Subject Matter that is disclosed by either party, its Affiliates (as defined below), or their agents (where applicable, collectively referred to as the “Disclosing Party”), directly or indirectly, in writing, orally or by inspection of premises or tangible objects to the other party (the “Recipient”) that is:  (i) marked confidential or proprietary, or  (ii) given the nature of the information or the circumstances surrounding its disclosure, reasonably should be deemed confidential.  \nLabel: No\n\nClause: 4. The undertakings in clauses 2 and 3 above apply to all of the information disclosed by the Discloser to the Recipient, regardless of the way or form in which it is disclosed or recorded but they do not apply to: \nLabel: No\n\nClause: 1. Disclosure: Recipient agrees not to disclose and the Discloser agrees to let the Recipient have the access to the Confidential Information as identified and reduced in writing or provided verbally or in any other way not reduced in writing at the time of such disclosure of the information. \nLabel: No\n\nClause: {{text}}\nLabel:",
+        "doc_to_choice": [
+          "Yes",
+          "No"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "pretrained": "data_500m/sft/model",
+        "dtype": "bfloat16",
+        "config_source": "benchmarks/custom_tasks/legalbench/legalbench_contract_nli_explicit_identification.yaml"
+      }
+    },
+    "legalbench_contract_nli_limited_use": {
+      "task": "legalbench_contract_nli_limited_use",
+      "dataset_path": "nguha/legalbench",
+      "dataset_name": "contract_nli_limited_use",
+      "test_split": "test",
+      "doc_to_text": "Identify if the clause provides that the Receiving Party shall not use any Confidential Information for any purpose other than the purposes stated in Agreement.\n\nClause: The Parties agree to use the Confidential Information solely in connection with the Transaction and not for any purpose other than as authorized by this Agreement without the prior written consent of an authorized representative of the Parties.  The Parties agree to ensure that all copyright products, such as source codes, system design data/architecture, and other proprietary information, disclosed during the engagement is protected from any misuse, alteration, modification, sharing, or transfer to any party without express permission of the Discloser.  Such data is provided for the sole use of the Parties, and limited for the use under this agreement. The Receiving Party agrees not to use the Confidential Information in any way, or to manufacture or test any product embodying Confidential Information, except for the purpose set forth above. \nLabel: Yes\n\nClause: 2. The Recipient undertakes not to use the Confidential Information for any purpose except the Purpose, without first obtaining the written agreement of the Discloser. \nLabel: Yes\n\nClause: 3. The Receiving Party agrees that Confidential Information shall be used only for the purposes of facilitating the business relationship between the Parties.  \nLabel: Yes\n\nClause: 2.1  No Use: Recipient agrees not to use the Confidential Information in any way or under any circumstances share the same, in writing or through any other means, with any Third Party. \nLabel: Yes\n\nClause: 4. Recipient may use the Confidential Information solely for evaluation purposes in connection with Recipient business discussions with Discloser.  6. Freedom of Use. Notwithstanding anything to the contrary, Recipient shall be free to use for any purposes the Residuals resulting from access to or work with Discloser's Confidential Information.  However, the foregoing does not give Recipient the right to disclose (except as set forth in Section 3) the financial, statistical, or personnel information or the business plans of Discloser, and the foregoing shall not be deemed to grant to either party a license under the other party's copyright or patents.  The term \"Residuals\" means information which may be retained in non-tangible form by person who have had access to the Confidential Information, including without limitation general ideas, concepts, know-how or techniques contained therein.  Recipient certifies that the Confidential Information will only be used for the purposes expressly stated herein and will not be rented, leased, sold, sublicensed, assigned, or otherwise transferred.  \nLabel: No\n\nClause: Further, the Receiving Party shall be free to use for any purpose the residuals resulting from access to or work with the Confidential Information of the Disclosing Party, provided that the Receiving Party shall not disclose the Confidential Information except as expressly permitted pursuant to the terms of this Agreement.  The term \"residuals\" means information in intangible form, which is retained in memory by persons who have had access to the Confidential Information, including ideas, concepts, know-how or techniques contained therein.  Furthermore, except as otherwise provided herein or in a separate subsequent written agreement between the parties, the receiver of the Feedback shall be free to use, disclose, reproduce, license or otherwise distribute, and exploit the Feedback provided to it as it sees fit, entirely without obligation or restriction of any kind on account of intellectual property rights or otherwise. \nLabel: No\n\nClause: (iii) either Party will be free to use for any purpose the residuals resulting from access to or work with Confidential Information disclosed hereunder.  \nLabel: No\n\nClause: Nothing in this Agreement shall be construed to limit either party’s ability to use “residuals” relating to the Evaluation Material of the other party.  The term “residuals” shall mean information included in the Evaluation Material in nontangible form (i.e., not written or other documentary form, including tape or disk), which is incidentally retained in the memories of employees of either party who have had access to the Evaluation Material, including ideas, know-how, or techniques contained therein, and where the source of the Evaluation Material has become remote (e.g., as a result of the passage of time or the employee’s subsequent exposure to information of a similar nature from other sources) that the employee in good faith believes that it is not Evaluation Material.  \nLabel: No\n\nClause: {{text}}\nLabel:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "Yes",
+        "No"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "Identify if the clause provides that the Receiving Party shall not use any Confidential Information for any purpose other than the purposes stated in Agreement.\n\nClause: The Parties agree to use the Confidential Information solely in connection with the Transaction and not for any purpose other than as authorized by this Agreement without the prior written consent of an authorized representative of the Parties.  The Parties agree to ensure that all copyright products, such as source codes, system design data/architecture, and other proprietary information, disclosed during the engagement is protected from any misuse, alteration, modification, sharing, or transfer to any party without express permission of the Discloser.  Such data is provided for the sole use of the Parties, and limited for the use under this agreement. The Receiving Party agrees not to use the Confidential Information in any way, or to manufacture or test any product embodying Confidential Information, except for the purpose set forth above. \nLabel: Yes\n\nClause: 2. The Recipient undertakes not to use the Confidential Information for any purpose except the Purpose, without first obtaining the written agreement of the Discloser. \nLabel: Yes\n\nClause: 3. The Receiving Party agrees that Confidential Information shall be used only for the purposes of facilitating the business relationship between the Parties.  \nLabel: Yes\n\nClause: 2.1  No Use: Recipient agrees not to use the Confidential Information in any way or under any circumstances share the same, in writing or through any other means, with any Third Party. \nLabel: Yes\n\nClause: 4. Recipient may use the Confidential Information solely for evaluation purposes in connection with Recipient business discussions with Discloser.  6. Freedom of Use. Notwithstanding anything to the contrary, Recipient shall be free to use for any purposes the Residuals resulting from access to or work with Discloser's Confidential Information.  However, the foregoing does not give Recipient the right to disclose (except as set forth in Section 3) the financial, statistical, or personnel information or the business plans of Discloser, and the foregoing shall not be deemed to grant to either party a license under the other party's copyright or patents.  The term \"Residuals\" means information which may be retained in non-tangible form by person who have had access to the Confidential Information, including without limitation general ideas, concepts, know-how or techniques contained therein.  Recipient certifies that the Confidential Information will only be used for the purposes expressly stated herein and will not be rented, leased, sold, sublicensed, assigned, or otherwise transferred.  \nLabel: No\n\nClause: Further, the Receiving Party shall be free to use for any purpose the residuals resulting from access to or work with the Confidential Information of the Disclosing Party, provided that the Receiving Party shall not disclose the Confidential Information except as expressly permitted pursuant to the terms of this Agreement.  The term \"residuals\" means information in intangible form, which is retained in memory by persons who have had access to the Confidential Information, including ideas, concepts, know-how or techniques contained therein.  Furthermore, except as otherwise provided herein or in a separate subsequent written agreement between the parties, the receiver of the Feedback shall be free to use, disclose, reproduce, license or otherwise distribute, and exploit the Feedback provided to it as it sees fit, entirely without obligation or restriction of any kind on account of intellectual property rights or otherwise. \nLabel: No\n\nClause: (iii) either Party will be free to use for any purpose the residuals resulting from access to or work with Confidential Information disclosed hereunder.  \nLabel: No\n\nClause: Nothing in this Agreement shall be construed to limit either party’s ability to use “residuals” relating to the Evaluation Material of the other party.  The term “residuals” shall mean information included in the Evaluation Material in nontangible form (i.e., not written or other documentary form, including tape or disk), which is incidentally retained in the memories of employees of either party who have had access to the Evaluation Material, including ideas, know-how, or techniques contained therein, and where the source of the Evaluation Material has become remote (e.g., as a result of the passage of time or the employee’s subsequent exposure to information of a similar nature from other sources) that the employee in good faith believes that it is not Evaluation Material.  \nLabel: No\n\nClause: {{text}}\nLabel:",
+        "doc_to_choice": [
+          "Yes",
+          "No"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "pretrained": "data_500m/sft/model",
+        "dtype": "bfloat16",
+        "config_source": "benchmarks/custom_tasks/legalbench/legalbench_contract_nli_limited_use.yaml"
+      }
+    },
+    "legalbench_contract_nli_no_licensing": {
+      "task": "legalbench_contract_nli_no_licensing",
+      "dataset_path": "nguha/legalbench",
+      "dataset_name": "contract_nli_no_licensing",
+      "test_split": "test",
+      "doc_to_text": "Identify if the clause provides that the Agreement shall not grant Receiving Party any right to Confidential Information.\n\nClause: No other right or license, whether expressed or implied, in the Confidential Information is granted to the Parties hereunder.  \nLabel: Yes\n\nClause: Neither the execution of this Agreement nor the disclosure of any Confidential Information is construed as granting either expressly or by implication, estoppel or otherwise, any license or right to the Confidential Information or any intellectual property rights embodied therein. \nLabel: Yes\n\nClause: 7. Neither this Agreement nor the supply of any information grants the Recipient any licence, interest or right in respect of any intellectual property rights of the Discloser except the right to copy the Confidential Information solely for the Purpose. \nLabel: Yes\n\nClause: 8. Title to, interest in, and all other rights of ownership to Confidential Information shall remain with the Disclosing Party.  \nLabel: Yes\n\nClause: Therefore, the parties agree that a) Recipient may disclose Confidential Information to its Subsidiaries without Discloser’s consent, if and to the extent such disclosure is required in order to fulfill the Purpose; and b) a disclosure to or by a party’s respective Subsidiaries shall be considered as disclosure to or by the respective party; and \nLabel: No\n\nClause: \"Confidential Information\" of a disclosing party (\"Discloser\") means the following, regardless of its form and including copies made by the receiving party (\"Recipient\"), whether the Recipient becomes aware of it before or after the date of this Agreement: except where that information is:  known to the Recipient free of any obligation to keep it confidential; or \nLabel: No\n\nClause: In consideration of the said discussions both parties agree: 6) that the provisions of this agreement shall last for the duration of the discussions relating to the Proposed Transaction and for 2 years following their conclusion. \nLabel: No\n\nClause: 4.1 Regular Board meetings are, in the ordinary course of events, not open to the public and/or media. d) If no recordal is made, the matter, discussions and all resolutions should be deemed to be confidential unless declared by the Board by resolution as not confidential. \nLabel: No\n\nClause: {{text}}\nLabel:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "Yes",
+        "No"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "Identify if the clause provides that the Agreement shall not grant Receiving Party any right to Confidential Information.\n\nClause: No other right or license, whether expressed or implied, in the Confidential Information is granted to the Parties hereunder.  \nLabel: Yes\n\nClause: Neither the execution of this Agreement nor the disclosure of any Confidential Information is construed as granting either expressly or by implication, estoppel or otherwise, any license or right to the Confidential Information or any intellectual property rights embodied therein. \nLabel: Yes\n\nClause: 7. Neither this Agreement nor the supply of any information grants the Recipient any licence, interest or right in respect of any intellectual property rights of the Discloser except the right to copy the Confidential Information solely for the Purpose. \nLabel: Yes\n\nClause: 8. Title to, interest in, and all other rights of ownership to Confidential Information shall remain with the Disclosing Party.  \nLabel: Yes\n\nClause: Therefore, the parties agree that a) Recipient may disclose Confidential Information to its Subsidiaries without Discloser’s consent, if and to the extent such disclosure is required in order to fulfill the Purpose; and b) a disclosure to or by a party’s respective Subsidiaries shall be considered as disclosure to or by the respective party; and \nLabel: No\n\nClause: \"Confidential Information\" of a disclosing party (\"Discloser\") means the following, regardless of its form and including copies made by the receiving party (\"Recipient\"), whether the Recipient becomes aware of it before or after the date of this Agreement: except where that information is:  known to the Recipient free of any obligation to keep it confidential; or \nLabel: No\n\nClause: In consideration of the said discussions both parties agree: 6) that the provisions of this agreement shall last for the duration of the discussions relating to the Proposed Transaction and for 2 years following their conclusion. \nLabel: No\n\nClause: 4.1 Regular Board meetings are, in the ordinary course of events, not open to the public and/or media. d) If no recordal is made, the matter, discussions and all resolutions should be deemed to be confidential unless declared by the Board by resolution as not confidential. \nLabel: No\n\nClause: {{text}}\nLabel:",
+        "doc_to_choice": [
+          "Yes",
+          "No"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "pretrained": "data_500m/sft/model",
+        "dtype": "bfloat16",
+        "config_source": "benchmarks/custom_tasks/legalbench/legalbench_contract_nli_no_licensing.yaml"
+      }
+    },
+    "legalbench_contract_nli_notice_on_compelled_disclosure": {
+      "task": "legalbench_contract_nli_notice_on_compelled_disclosure",
+      "dataset_path": "nguha/legalbench",
+      "dataset_name": "contract_nli_notice_on_compelled_disclosure",
+      "test_split": "test",
+      "doc_to_text": "Identify if the clause provides that the Receiving Party shall notify Disclosing Party in case Receiving Party is required by law, regulation or judicial process to disclose any Confidential Information.\n\nClause: a. The Recipient may disclose Confidential Information pursuant to any governmental, judicial, or administrative order, subpoena, discovery request, regulatory request or similar method, provided that the Recipient promptly notifies, to the extent practicable. \nLabel: Yes\n\nClause: If Recipient is requested, ordered or required by a regulatory agency or any other government authority or a court to disclose any Confidential Information, Recipient shall promptly notify Disclosing Party of such request, order or requirement so that Disclosing Party may have the opportunity to contest the disclosure, including seeking a protective order, or waive Recipient’s compliance with this Agreement.  \nLabel: Yes\n\nClause: In the event that the Disclosee or any of its Representatives becomes legally compelled to disclose any of the Confidential Information to a regulatory authority or to any other entity or third party, the Disclosee shall immediately notify the Sellers before disclosing such Confidential Information, so that the Sellers may seek a protective order or other appropriate remedy, without prejudice to the Disclosee’s remedies under this Agreement. \nLabel: Yes\n\nClause: 4.1. Notwithstanding clause 3.1 of this Agreement, the Receiving Party may disclose the Confidential Information: b) as may be required by an order of any court of competent jurisdiction or governmental body in which case the Receiving Party shall, to the extent permitted by law, use reasonable endeavours to provide the Disclosing Party with prompt written notice of any such requirement prior to any disclosure so that the Disclosing Party may seek a protection order or other appropriate remedy.  \nLabel: Yes\n\nClause: The Receiving Party shall provide attested certification from an authorized representative confirming such return and destruction \"provided however, Receiving Party may retain one (1) copy of such documentation in its secure legal files for the sole purpose of administering its obligations under this agreement, as well as copies of electronically exchanged Confidential Information that are made as a matter of routine information technology back-up, which copies shall continue to be kept confidential in accordance with the terms and conditions of this Agreement.\" \nLabel: No\n\nClause: 2.1. A Receiving Party agrees: 2.1.1. to keep the Confidential Information of the other strictly confidential and not copy, supply or make the same available to any person other than as permitted in Clauses 2.1.2 and 2.1.3 below; \nLabel: No\n\nClause: 2. Neither party has any obligation with respect to any Conﬁdential Information which  (c) is disclosed to it by a third person who is not required to maintain its conﬁdentiality;  \nLabel: No\n\nClause: \"Confidential Information\" of a disclosing party (\"Discloser\") means the following, regardless of its form and including copies made by the receiving party (\"Recipient\"), whether the Recipient becomes aware of it before or after the date of this Agreement:  disclosed by the Discloser to the Recipient or of which the Recipient becomes aware, including but not limited to, the information specified in Schedule 1; Neither party may make any public announcement or press release concerning the purpose or this agreement without the prior written consent of the other party.  the fact that the parties are discussing a Project or Opportunity;  the status of the Project or Opportunity; and  the fact that the parties have made information available to each other and are inspecting or evaluating that information; \nLabel: No\n\nClause: {{text}}\nLabel:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "Yes",
+        "No"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "Identify if the clause provides that the Receiving Party shall notify Disclosing Party in case Receiving Party is required by law, regulation or judicial process to disclose any Confidential Information.\n\nClause: a. The Recipient may disclose Confidential Information pursuant to any governmental, judicial, or administrative order, subpoena, discovery request, regulatory request or similar method, provided that the Recipient promptly notifies, to the extent practicable. \nLabel: Yes\n\nClause: If Recipient is requested, ordered or required by a regulatory agency or any other government authority or a court to disclose any Confidential Information, Recipient shall promptly notify Disclosing Party of such request, order or requirement so that Disclosing Party may have the opportunity to contest the disclosure, including seeking a protective order, or waive Recipient’s compliance with this Agreement.  \nLabel: Yes\n\nClause: In the event that the Disclosee or any of its Representatives becomes legally compelled to disclose any of the Confidential Information to a regulatory authority or to any other entity or third party, the Disclosee shall immediately notify the Sellers before disclosing such Confidential Information, so that the Sellers may seek a protective order or other appropriate remedy, without prejudice to the Disclosee’s remedies under this Agreement. \nLabel: Yes\n\nClause: 4.1. Notwithstanding clause 3.1 of this Agreement, the Receiving Party may disclose the Confidential Information: b) as may be required by an order of any court of competent jurisdiction or governmental body in which case the Receiving Party shall, to the extent permitted by law, use reasonable endeavours to provide the Disclosing Party with prompt written notice of any such requirement prior to any disclosure so that the Disclosing Party may seek a protection order or other appropriate remedy.  \nLabel: Yes\n\nClause: The Receiving Party shall provide attested certification from an authorized representative confirming such return and destruction \"provided however, Receiving Party may retain one (1) copy of such documentation in its secure legal files for the sole purpose of administering its obligations under this agreement, as well as copies of electronically exchanged Confidential Information that are made as a matter of routine information technology back-up, which copies shall continue to be kept confidential in accordance with the terms and conditions of this Agreement.\" \nLabel: No\n\nClause: 2.1. A Receiving Party agrees: 2.1.1. to keep the Confidential Information of the other strictly confidential and not copy, supply or make the same available to any person other than as permitted in Clauses 2.1.2 and 2.1.3 below; \nLabel: No\n\nClause: 2. Neither party has any obligation with respect to any Conﬁdential Information which  (c) is disclosed to it by a third person who is not required to maintain its conﬁdentiality;  \nLabel: No\n\nClause: \"Confidential Information\" of a disclosing party (\"Discloser\") means the following, regardless of its form and including copies made by the receiving party (\"Recipient\"), whether the Recipient becomes aware of it before or after the date of this Agreement:  disclosed by the Discloser to the Recipient or of which the Recipient becomes aware, including but not limited to, the information specified in Schedule 1; Neither party may make any public announcement or press release concerning the purpose or this agreement without the prior written consent of the other party.  the fact that the parties are discussing a Project or Opportunity;  the status of the Project or Opportunity; and  the fact that the parties have made information available to each other and are inspecting or evaluating that information; \nLabel: No\n\nClause: {{text}}\nLabel:",
+        "doc_to_choice": [
+          "Yes",
+          "No"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "pretrained": "data_500m/sft/model",
+        "dtype": "bfloat16",
+        "config_source": "benchmarks/custom_tasks/legalbench/legalbench_contract_nli_notice_on_compelled_disclosure.yaml"
+      }
+    },
+    "legalbench_contract_nli_permissible_copy": {
+      "task": "legalbench_contract_nli_permissible_copy",
+      "dataset_path": "nguha/legalbench",
+      "dataset_name": "contract_nli_permissible_copy",
+      "test_split": "test",
+      "doc_to_text": "Identify if the clause provides that the Receiving Party may create a copy of some Confidential Information in some circumstances.\n\nClause: e. Return of Information. on a Party's request, the other Party shall return all Confidential Information of the requesting Party, except for that portion of such Confidential Information that may be found in analyses prepared by, or for, the returning Party (collectively, \"Analyses\"), and the returning Party and its Representatives shall not retain any copies of such Confidential Information except the returning Party may retain one copy of the Confidential Information as needed to comply with applicable law and/or returning Party's record retention policies.  \nLabel: Yes\n\nClause: Disclosing Party may serve written request on Recipient for return or destruction of its Confidential Information at any time up to six (6) months after the termination or expiry of this Agreement and Recipient shall, within thirty (30) days of such request or termination, return to the Disclosing Party (or its designees) or certify as destroyed all Confidential Information, in whatever form, including written or electronically recorded information and all copies thereof (other than copies retained in automatic back-up and archive systems), provided however that Recipient shall be entitled to retain one copy of the Confidential Information with its legal counsel or other appropriate corporate representative to evidence the exchange of information hereunder and in connection with legal or statutory requirements.  \nLabel: Yes\n\nClause: The Receiving Party shall not make any copies of Confidential Information except as necessary to perform hereunder.  \nLabel: Yes\n\nClause: Subject to the terms of the NDA the Receiving Party hereby undertakes to the Disclosing Party: d) that it shall not copy or reproduce in any form any of the Confidential Information disclosed to it by the Disclosing Party, except to the extent necessary for the LOA purposes; and \nLabel: Yes\n\nClause: I agree that in respect of the Confidential Information received from The Business Partnership I will: Treat it as confidential and make no copies thereof not disclose it to any third party without the prior written consent of The Business Partnership and use it solely for the purpose as agreed between parties \nLabel: No\n\nClause: Tangible forms of the CONFIDENTIAL INFORMATION shall not be copied, in whole or in part, without the prior written consent of the DISCLOSING PARTY. \nLabel: No\n\nClause: Confidential Information includes, by way of example only, information that the Contractor views, takes notes from, copies (if the State agrees in writing to permit copying), possesses or is otherwise provided access to and use of by the State in relation to the Contract. 2. The Contractor shall not, without the State’s prior written consent, copy, disclose, publish, release, transfer, disseminate, use, or allow access for any purpose or in any form, any Confidential Information except for the sole and exclusive purpose of performing under the Contract.  \nLabel: No\n\nClause: The Confidential Information must not be copied, reproduced, distributed, stored digitally or by other means, or passed to others at any time other than in accordance with this Confidentiality Agreement or with the prior written consent of Transnet. \nLabel: No\n\nClause: {{text}}\nLabel:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "Yes",
+        "No"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "Identify if the clause provides that the Receiving Party may create a copy of some Confidential Information in some circumstances.\n\nClause: e. Return of Information. on a Party's request, the other Party shall return all Confidential Information of the requesting Party, except for that portion of such Confidential Information that may be found in analyses prepared by, or for, the returning Party (collectively, \"Analyses\"), and the returning Party and its Representatives shall not retain any copies of such Confidential Information except the returning Party may retain one copy of the Confidential Information as needed to comply with applicable law and/or returning Party's record retention policies.  \nLabel: Yes\n\nClause: Disclosing Party may serve written request on Recipient for return or destruction of its Confidential Information at any time up to six (6) months after the termination or expiry of this Agreement and Recipient shall, within thirty (30) days of such request or termination, return to the Disclosing Party (or its designees) or certify as destroyed all Confidential Information, in whatever form, including written or electronically recorded information and all copies thereof (other than copies retained in automatic back-up and archive systems), provided however that Recipient shall be entitled to retain one copy of the Confidential Information with its legal counsel or other appropriate corporate representative to evidence the exchange of information hereunder and in connection with legal or statutory requirements.  \nLabel: Yes\n\nClause: The Receiving Party shall not make any copies of Confidential Information except as necessary to perform hereunder.  \nLabel: Yes\n\nClause: Subject to the terms of the NDA the Receiving Party hereby undertakes to the Disclosing Party: d) that it shall not copy or reproduce in any form any of the Confidential Information disclosed to it by the Disclosing Party, except to the extent necessary for the LOA purposes; and \nLabel: Yes\n\nClause: I agree that in respect of the Confidential Information received from The Business Partnership I will: Treat it as confidential and make no copies thereof not disclose it to any third party without the prior written consent of The Business Partnership and use it solely for the purpose as agreed between parties \nLabel: No\n\nClause: Tangible forms of the CONFIDENTIAL INFORMATION shall not be copied, in whole or in part, without the prior written consent of the DISCLOSING PARTY. \nLabel: No\n\nClause: Confidential Information includes, by way of example only, information that the Contractor views, takes notes from, copies (if the State agrees in writing to permit copying), possesses or is otherwise provided access to and use of by the State in relation to the Contract. 2. The Contractor shall not, without the State’s prior written consent, copy, disclose, publish, release, transfer, disseminate, use, or allow access for any purpose or in any form, any Confidential Information except for the sole and exclusive purpose of performing under the Contract.  \nLabel: No\n\nClause: The Confidential Information must not be copied, reproduced, distributed, stored digitally or by other means, or passed to others at any time other than in accordance with this Confidentiality Agreement or with the prior written consent of Transnet. \nLabel: No\n\nClause: {{text}}\nLabel:",
+        "doc_to_choice": [
+          "Yes",
+          "No"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "pretrained": "data_500m/sft/model",
+        "dtype": "bfloat16",
+        "config_source": "benchmarks/custom_tasks/legalbench/legalbench_contract_nli_permissible_copy.yaml"
+      }
+    },
+    "legalbench_contract_nli_return_of_confidential_information": {
+      "task": "legalbench_contract_nli_return_of_confidential_information",
+      "dataset_path": "nguha/legalbench",
+      "dataset_name": "contract_nli_return_of_confidential_information",
+      "test_split": "test",
+      "doc_to_text": "Identify if the clause provides that the Receiving Party shall destroy or return some Confidential Information upon the termination of Agreement.\n\nClause: The Recipient shall immediately return and redeliver to the other all tangible material embodying the JEA Confidential Information provided hereunder and all notes, summaries, memoranda, drawings, manuals, records, excerpts or derivative information deriving there from and all other documents or materials (\"Notes\") (and all copies of any of the foregoing, including \"copies\" that have been converted to computerized media in the form of image, data or word processing files either manually or by image capture) based on or including any JEA Confidential Information, in whatever form of storage or retrieval, upon the earlier of - I. the completion or termination of the dealings between the parties contemplated hereunder; or II. the termination of this Agreement; or \nLabel: Yes\n\nClause: Disclosing Party may serve written request on Recipient for return or destruction of its Confidential Information at any time up to six (6) months after the termination or expiry of this Agreement and Recipient shall, within thirty (30) days of such request or termination, return to the Disclosing Party (or its designees) or certify as destroyed all Confidential Information, in whatever form, including written or electronically recorded information and all copies thereof (other than copies retained in automatic back-up and archive systems), provided however that Recipient shall be entitled to retain one copy of the Confidential Information with its legal counsel or other appropriate corporate representative to evidence the exchange of information hereunder and in connection with legal or statutory requirements.  \nLabel: Yes\n\nClause: In the event this Agreement is terminated, and the Disclosing Party so requests, the Receiving Party shall promptly return or destroy (and certify destruction of) all Confidential Information which it received from the Disclosing Party along with all copies.  \nLabel: Yes\n\nClause: Upon the request of VIDAR or the termination or expiration of this Confidential Agreement, Receiver shall promptly return to VIDAR all copies of the Confidential Information and obtained by Receiver. \nLabel: Yes\n\nClause: Upon termination of the Agreement, Independent Contractor shall redeliver all tangible Confidential Information furnished by the Company.  Except to the extent Independent Contractor is advised in writing by counsel that such action is prohibited by law, Independent Contractor will also destroy all written material, memoranda, notes, and other writings or recordings whatsoever prepared by it based upon, containing, or otherwise reflecting any Confidential Information.  \nLabel: No\n\nClause: The parties will entrust confidential information solely to those employees, consultants and third party companies which are concerned with the processing of the order and which are legally or contractually obligated to secrecy. \nLabel: No\n\nClause: 9.4. This Agreement shall apply without limit of time to all Confidential Information disclosed in connection with the Purpose. \nLabel: No\n\nClause: Nothing in this agreement shall be construed as granting Recipient any rights of any kinds in the Confidential Information, by license or otherwise. \nLabel: No\n\nClause: {{text}}\nLabel:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "Yes",
+        "No"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "Identify if the clause provides that the Receiving Party shall destroy or return some Confidential Information upon the termination of Agreement.\n\nClause: The Recipient shall immediately return and redeliver to the other all tangible material embodying the JEA Confidential Information provided hereunder and all notes, summaries, memoranda, drawings, manuals, records, excerpts or derivative information deriving there from and all other documents or materials (\"Notes\") (and all copies of any of the foregoing, including \"copies\" that have been converted to computerized media in the form of image, data or word processing files either manually or by image capture) based on or including any JEA Confidential Information, in whatever form of storage or retrieval, upon the earlier of - I. the completion or termination of the dealings between the parties contemplated hereunder; or II. the termination of this Agreement; or \nLabel: Yes\n\nClause: Disclosing Party may serve written request on Recipient for return or destruction of its Confidential Information at any time up to six (6) months after the termination or expiry of this Agreement and Recipient shall, within thirty (30) days of such request or termination, return to the Disclosing Party (or its designees) or certify as destroyed all Confidential Information, in whatever form, including written or electronically recorded information and all copies thereof (other than copies retained in automatic back-up and archive systems), provided however that Recipient shall be entitled to retain one copy of the Confidential Information with its legal counsel or other appropriate corporate representative to evidence the exchange of information hereunder and in connection with legal or statutory requirements.  \nLabel: Yes\n\nClause: In the event this Agreement is terminated, and the Disclosing Party so requests, the Receiving Party shall promptly return or destroy (and certify destruction of) all Confidential Information which it received from the Disclosing Party along with all copies.  \nLabel: Yes\n\nClause: Upon the request of VIDAR or the termination or expiration of this Confidential Agreement, Receiver shall promptly return to VIDAR all copies of the Confidential Information and obtained by Receiver. \nLabel: Yes\n\nClause: Upon termination of the Agreement, Independent Contractor shall redeliver all tangible Confidential Information furnished by the Company.  Except to the extent Independent Contractor is advised in writing by counsel that such action is prohibited by law, Independent Contractor will also destroy all written material, memoranda, notes, and other writings or recordings whatsoever prepared by it based upon, containing, or otherwise reflecting any Confidential Information.  \nLabel: No\n\nClause: The parties will entrust confidential information solely to those employees, consultants and third party companies which are concerned with the processing of the order and which are legally or contractually obligated to secrecy. \nLabel: No\n\nClause: 9.4. This Agreement shall apply without limit of time to all Confidential Information disclosed in connection with the Purpose. \nLabel: No\n\nClause: Nothing in this agreement shall be construed as granting Recipient any rights of any kinds in the Confidential Information, by license or otherwise. \nLabel: No\n\nClause: {{text}}\nLabel:",
+        "doc_to_choice": [
+          "Yes",
+          "No"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "pretrained": "data_500m/sft/model",
+        "dtype": "bfloat16",
+        "config_source": "benchmarks/custom_tasks/legalbench/legalbench_contract_nli_return_of_confidential_information.yaml"
+      }
+    },
+    "legalbench_contract_nli_sharing_with_employees": {
+      "task": "legalbench_contract_nli_sharing_with_employees",
+      "dataset_path": "nguha/legalbench",
+      "dataset_name": "contract_nli_sharing_with_employees",
+      "test_split": "test",
+      "doc_to_text": "Identify if the clause provides that the Receiving Party may share some Confidential Information with some of Receiving Party's employees.\n\nClause: The Parties will: a. limit disclosure of any Confidential Information to its directors, officers, employees, agents or representatives (collectively \"Representatives\") who have a need to know such Confidential Information in connection with the Transaction, and only for that purpose; The Receiving Party agrees to use the same degree of protection it uses for its own trade secret information, and in no event less than reasonable efforts, to prevent and protect the Confidential Information, or any part thereof, from disclosure to any person other than the Receiving Party's employees having a need for disclosure in connection with the Receiving Party's authorized use of the Confidential Information. \nLabel: Yes\n\nClause: Recipient agrees to limit disclosure of Confidential Information to employees and employees of Affiliates having a specific need to know such Confidential Information for the Purpose and in the case of Affiliates only to the extent that such Affiliate is under obligation to hold such information in confidence and is made aware of these terms and conditions.  \nLabel: Yes\n\nClause: The Disclosee will procure that prior to the disclosure to any other person (including any professional advisor) of any Confidential Information, such other person is made aware of the provisions of this Agreement and the fact that the Disclosee will be liable. \nLabel: Yes\n\nClause: Each Party shall be responsible for any breach of this Agreement by such Party, its employees, agents, officials, representatives or consultants acting within the scope of their engagement or employment. \nLabel: Yes\n\nClause: ____________________ , agrees that, in consideration for being shown or told about certain trade secrets or property belonging to Navidec, Incorporated, ____________________, shall not disclose or cause to be disclosed, disseminated or distributed any information concerning said trade secret or property to any person, entity, business or other individual or company without the prior written permission of Navidec, Incorporated. \nLabel: No\n\nClause: \"Confidential Information\" includes, without limitation, information in tangible or intangible form relating to and/or including released or unreleased Disclosing Party software or hardware products, the marketing or promotion of any Disclosing Party product, Disclosing Party's business policies or practices, and information received from others that Disclosing Party is obligated to treat as confidential.  \nLabel: No\n\nClause: Proprietary Information does not include, however, information that  (iv) was independently developed by the Receiving Party or any of its Representatives without reference to the \nLabel: No\n\nClause: 7. Confidential Information shall not include information which is: f. Independently developed by or for the Receiving Party. \nLabel: No\n\nClause: {{text}}\nLabel:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "Yes",
+        "No"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "Identify if the clause provides that the Receiving Party may share some Confidential Information with some of Receiving Party's employees.\n\nClause: The Parties will: a. limit disclosure of any Confidential Information to its directors, officers, employees, agents or representatives (collectively \"Representatives\") who have a need to know such Confidential Information in connection with the Transaction, and only for that purpose; The Receiving Party agrees to use the same degree of protection it uses for its own trade secret information, and in no event less than reasonable efforts, to prevent and protect the Confidential Information, or any part thereof, from disclosure to any person other than the Receiving Party's employees having a need for disclosure in connection with the Receiving Party's authorized use of the Confidential Information. \nLabel: Yes\n\nClause: Recipient agrees to limit disclosure of Confidential Information to employees and employees of Affiliates having a specific need to know such Confidential Information for the Purpose and in the case of Affiliates only to the extent that such Affiliate is under obligation to hold such information in confidence and is made aware of these terms and conditions.  \nLabel: Yes\n\nClause: The Disclosee will procure that prior to the disclosure to any other person (including any professional advisor) of any Confidential Information, such other person is made aware of the provisions of this Agreement and the fact that the Disclosee will be liable. \nLabel: Yes\n\nClause: Each Party shall be responsible for any breach of this Agreement by such Party, its employees, agents, officials, representatives or consultants acting within the scope of their engagement or employment. \nLabel: Yes\n\nClause: ____________________ , agrees that, in consideration for being shown or told about certain trade secrets or property belonging to Navidec, Incorporated, ____________________, shall not disclose or cause to be disclosed, disseminated or distributed any information concerning said trade secret or property to any person, entity, business or other individual or company without the prior written permission of Navidec, Incorporated. \nLabel: No\n\nClause: \"Confidential Information\" includes, without limitation, information in tangible or intangible form relating to and/or including released or unreleased Disclosing Party software or hardware products, the marketing or promotion of any Disclosing Party product, Disclosing Party's business policies or practices, and information received from others that Disclosing Party is obligated to treat as confidential.  \nLabel: No\n\nClause: Proprietary Information does not include, however, information that  (iv) was independently developed by the Receiving Party or any of its Representatives without reference to the \nLabel: No\n\nClause: 7. Confidential Information shall not include information which is: f. Independently developed by or for the Receiving Party. \nLabel: No\n\nClause: {{text}}\nLabel:",
+        "doc_to_choice": [
+          "Yes",
+          "No"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "pretrained": "data_500m/sft/model",
+        "dtype": "bfloat16",
+        "config_source": "benchmarks/custom_tasks/legalbench/legalbench_contract_nli_sharing_with_employees.yaml"
+      }
+    },
+    "legalbench_contract_nli_survival_of_obligations": {
+      "task": "legalbench_contract_nli_survival_of_obligations",
+      "dataset_path": "nguha/legalbench",
+      "dataset_name": "contract_nli_survival_of_obligations",
+      "test_split": "test",
+      "doc_to_text": "Identify if the clause provides that ome obligations of Agreement may survive termination of Agreement.\n\nClause: b. Notwithstanding the foregoing, the parties' duty to hold in confidence Confidential Information that was disclosed during term shall remain in effect indefinitely. \nLabel: Yes\n\nClause: Confidentiality obligations shall survive termination of this Agreement for the Period of Confidentiality set forth above unless the Confidential Information is a trade secret, in which case the confidentiality obligations shall continue for as long as the information is a trade secret.  Sections 1, 2, 3, 4, 5, 6, 17, 18, 19 and any sections (or parts thereof) which, by their nature, are intended to survive termination shall survive termination of this Agreement. \nLabel: Yes\n\nClause: 8. The undertakings in clauses 2 and 3 will continue in force indefinitely. \nLabel: Yes\n\nClause: The obligations of the Receiving Party under this Agreement shall survive the termination of this Agreement or the return of the Confidential Information to the Disclosing Party. \nLabel: Yes\n\nClause: This Agreement and Recipient’s obligation to keep Confidential Information confidential expires three (3) years after the Effective Date. \nLabel: No\n\nClause: Without granting any right or license, the Disclosing Party agrees that the foregoing clauses  (i),  (ii),  (iii) and  (v) shall not apply with respect to all obligations after five (5) years following the disclosure thereof or any information that the Receiving Party can document  \nLabel: No\n\nClause: The terms of this section “Use of Evaluation Materials” shall remain in effect for 2 years from the effective date of this agreement. The terms of this section “Non-Disclosure” shall remain in effect for 2 years from the effective date of this agreement. \nLabel: No\n\nClause: 9. This Agreement shall expire and cease to have any force or effect on the earlier of  (i) eighteen months from the date hereof or  (ii) the date of consummation of a transaction between the parties. \nLabel: No\n\nClause: {{text}}\nLabel:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "Yes",
+        "No"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "Identify if the clause provides that ome obligations of Agreement may survive termination of Agreement.\n\nClause: b. Notwithstanding the foregoing, the parties' duty to hold in confidence Confidential Information that was disclosed during term shall remain in effect indefinitely. \nLabel: Yes\n\nClause: Confidentiality obligations shall survive termination of this Agreement for the Period of Confidentiality set forth above unless the Confidential Information is a trade secret, in which case the confidentiality obligations shall continue for as long as the information is a trade secret.  Sections 1, 2, 3, 4, 5, 6, 17, 18, 19 and any sections (or parts thereof) which, by their nature, are intended to survive termination shall survive termination of this Agreement. \nLabel: Yes\n\nClause: 8. The undertakings in clauses 2 and 3 will continue in force indefinitely. \nLabel: Yes\n\nClause: The obligations of the Receiving Party under this Agreement shall survive the termination of this Agreement or the return of the Confidential Information to the Disclosing Party. \nLabel: Yes\n\nClause: This Agreement and Recipient’s obligation to keep Confidential Information confidential expires three (3) years after the Effective Date. \nLabel: No\n\nClause: Without granting any right or license, the Disclosing Party agrees that the foregoing clauses  (i),  (ii),  (iii) and  (v) shall not apply with respect to all obligations after five (5) years following the disclosure thereof or any information that the Receiving Party can document  \nLabel: No\n\nClause: The terms of this section “Use of Evaluation Materials” shall remain in effect for 2 years from the effective date of this agreement. The terms of this section “Non-Disclosure” shall remain in effect for 2 years from the effective date of this agreement. \nLabel: No\n\nClause: 9. This Agreement shall expire and cease to have any force or effect on the earlier of  (i) eighteen months from the date hereof or  (ii) the date of consummation of a transaction between the parties. \nLabel: No\n\nClause: {{text}}\nLabel:",
+        "doc_to_choice": [
+          "Yes",
+          "No"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "pretrained": "data_500m/sft/model",
+        "dtype": "bfloat16",
+        "config_source": "benchmarks/custom_tasks/legalbench/legalbench_contract_nli_survival_of_obligations.yaml"
+      }
+    },
+    "legalbench_contract_qa": {
+      "task": "legalbench_contract_qa",
+      "dataset_path": "nguha/legalbench",
+      "dataset_name": "contract_qa",
+      "test_split": "test",
+      "doc_to_text": "Answer the question.\n\nClause: In the event of a data breach involving the unauthorized access, use, or disclosure of personally identifiable information (PII), the Company shall notify without undue delay affected individuals and relevant regulatory authorities in accordance with applicable laws and regulations. The Company shall also take reasonable steps to mitigate the harm caused by the breach and to prevent future breaches.\nQuestion: Does the clause discuss PII data breaches?\nAnswer: Yes\n\nClause: In the event of any dispute arising out of or relating to this agreement, the parties agree to submit to mediation before resorting to arbitration or litigation.\nQuestion: Does the clause discuss dispute resolution?\nAnswer: Yes\n\nClause: Each party agrees to keep confidential and not to disclose to any third party any confidential information of the other party, except as required by law or as necessary to perform its obligations under this Agreement. Each party shall take reasonable steps to protect the confidentiality of the other party's confidential information and to prevent its unauthorized use or disclosure.\nQuestion: Does the clause describe confidentiality requirements?\nAnswer: Yes\n\nClause: This Agreement shall be governed by and construed in accordance with the laws of the State of New York, without giving effect to any choice of law or conflict of law provisions. The parties hereby submit to the exclusive jurisdiction of the state and federal courts located in New York County, New York for any dispute arising out of or relating to this Agreement.\nQuestion: Does the clause discuss choice of law governing the contract?\nAnswer: Yes\n\nClause: This Agreement shall be governed by and construed in accordance with the laws of the State of California\nQuestion: Does the clause waive confidentiality?\nAnswer: No\n\nClause: This Agreement shall be binding upon and inure to the benefit of the parties hereto and their respective successors and assigns.\nQuestion: Does the clause discuss personal indemnification?\nAnswer: No\n\nClause: This Agreement shall be binding upon and inure to the benefit of the parties hereto and their respective successors and assigns\nQuestion: Does the clause waive confidentiality?\nAnswer: No\n\nClause: This Agreement contains the entire understanding between the parties hereto with respect to the subject matter hereof and supersedes all prior agreements and understandings between them relating thereto.\nQuestion: Does the clause describe confidentiality requirements?\nAnswer: No\n\nClause: {{text}}\nQuestion: {{question}}\nLabel:",
+      "doc_to_target": "answer",
+      "unsafe_code": false,
+      "doc_to_choice": [
+        "Yes",
+        "No"
+      ],
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "Answer the question.\n\nClause: In the event of a data breach involving the unauthorized access, use, or disclosure of personally identifiable information (PII), the Company shall notify without undue delay affected individuals and relevant regulatory authorities in accordance with applicable laws and regulations. The Company shall also take reasonable steps to mitigate the harm caused by the breach and to prevent future breaches.\nQuestion: Does the clause discuss PII data breaches?\nAnswer: Yes\n\nClause: In the event of any dispute arising out of or relating to this agreement, the parties agree to submit to mediation before resorting to arbitration or litigation.\nQuestion: Does the clause discuss dispute resolution?\nAnswer: Yes\n\nClause: Each party agrees to keep confidential and not to disclose to any third party any confidential information of the other party, except as required by law or as necessary to perform its obligations under this Agreement. Each party shall take reasonable steps to protect the confidentiality of the other party's confidential information and to prevent its unauthorized use or disclosure.\nQuestion: Does the clause describe confidentiality requirements?\nAnswer: Yes\n\nClause: This Agreement shall be governed by and construed in accordance with the laws of the State of New York, without giving effect to any choice of law or conflict of law provisions. The parties hereby submit to the exclusive jurisdiction of the state and federal courts located in New York County, New York for any dispute arising out of or relating to this Agreement.\nQuestion: Does the clause discuss choice of law governing the contract?\nAnswer: Yes\n\nClause: This Agreement shall be governed by and construed in accordance with the laws of the State of California\nQuestion: Does the clause waive confidentiality?\nAnswer: No\n\nClause: This Agreement shall be binding upon and inure to the benefit of the parties hereto and their respective successors and assigns.\nQuestion: Does the clause discuss personal indemnification?\nAnswer: No\n\nClause: This Agreement shall be binding upon and inure to the benefit of the parties hereto and their respective successors and assigns\nQuestion: Does the clause waive confidentiality?\nAnswer: No\n\nClause: This Agreement contains the entire understanding between the parties hereto with respect to the subject matter hereof and supersedes all prior agreements and understandings between them relating thereto.\nQuestion: Does the clause describe confidentiality requirements?\nAnswer: No\n\nClause: {{text}}\nQuestion: {{question}}\nLabel:",
+        "doc_to_choice": [
+          "Yes",
+          "No"
+        ],
+        "doc_to_target": "answer",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "acc",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "multiple_choice",
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "pretrained": "data_500m/sft/model",
+        "dtype": "bfloat16",
+        "config_source": "benchmarks/custom_tasks/legalbench/legalbench_contract_qa.yaml"
+      }
+    }
+  },
+  "versions": {
+    "legalbench_citation_prediction_classification": 1.0,
+    "legalbench_consumer_contracts_qa": 1.0,
+    "legalbench_contract_nli_confidentiality_of_agreement": 1.0,
+    "legalbench_contract_nli_explicit_identification": 1.0,
+    "legalbench_contract_nli_limited_use": 1.0,
+    "legalbench_contract_nli_no_licensing": 1.0,
+    "legalbench_contract_nli_notice_on_compelled_disclosure": 1.0,
+    "legalbench_contract_nli_permissible_copy": 1.0,
+    "legalbench_contract_nli_return_of_confidential_information": 1.0,
+    "legalbench_contract_nli_sharing_with_employees": 1.0,
+    "legalbench_contract_nli_survival_of_obligations": 1.0,
+    "legalbench_contract_qa": 1.0
+  },
+  "n-shot": {
+    "legalbench_citation_prediction_classification": 0,
+    "legalbench_consumer_contracts_qa": 0,
+    "legalbench_contract_nli_confidentiality_of_agreement": 0,
+    "legalbench_contract_nli_explicit_identification": 0,
+    "legalbench_contract_nli_limited_use": 0,
+    "legalbench_contract_nli_no_licensing": 0,
+    "legalbench_contract_nli_notice_on_compelled_disclosure": 0,
+    "legalbench_contract_nli_permissible_copy": 0,
+    "legalbench_contract_nli_return_of_confidential_information": 0,
+    "legalbench_contract_nli_sharing_with_employees": 0,
+    "legalbench_contract_nli_survival_of_obligations": 0,
+    "legalbench_contract_qa": 0
+  },
+  "higher_is_better": {
+    "legalbench_citation_prediction_classification": {
+      "acc": true
+    },
+    "legalbench_consumer_contracts_qa": {
+      "acc": true
+    },
+    "legalbench_contract_nli_confidentiality_of_agreement": {
+      "acc": true
+    },
+    "legalbench_contract_nli_explicit_identification": {
+      "acc": true
+    },
+    "legalbench_contract_nli_limited_use": {
+      "acc": true
+    },
+    "legalbench_contract_nli_no_licensing": {
+      "acc": true
+    },
+    "legalbench_contract_nli_notice_on_compelled_disclosure": {
+      "acc": true
+    },
+    "legalbench_contract_nli_permissible_copy": {
+      "acc": true
+    },
+    "legalbench_contract_nli_return_of_confidential_information": {
+      "acc": true
+    },
+    "legalbench_contract_nli_sharing_with_employees": {
+      "acc": true
+    },
+    "legalbench_contract_nli_survival_of_obligations": {
+      "acc": true
+    },
+    "legalbench_contract_qa": {
+      "acc": true
+    }
+  },
+  "n-samples": {
+    "legalbench_citation_prediction_classification": {
+      "original": 108,
+      "effective": 108
+    },
+    "legalbench_consumer_contracts_qa": {
+      "original": 396,
+      "effective": 396
+    },
+    "legalbench_contract_nli_confidentiality_of_agreement": {
+      "original": 82,
+      "effective": 82
+    },
+    "legalbench_contract_nli_explicit_identification": {
+      "original": 109,
+      "effective": 109
+    },
+    "legalbench_contract_nli_limited_use": {
+      "original": 208,
+      "effective": 208
+    },
+    "legalbench_contract_nli_no_licensing": {
+      "original": 162,
+      "effective": 162
+    },
+    "legalbench_contract_nli_notice_on_compelled_disclosure": {
+      "original": 142,
+      "effective": 142
+    },
+    "legalbench_contract_nli_permissible_copy": {
+      "original": 87,
+      "effective": 87
+    },
+    "legalbench_contract_nli_return_of_confidential_information": {
+      "original": 66,
+      "effective": 66
+    },
+    "legalbench_contract_nli_sharing_with_employees": {
+      "original": 170,
+      "effective": 170
+    },
+    "legalbench_contract_nli_survival_of_obligations": {
+      "original": 157,
+      "effective": 157
+    },
+    "legalbench_contract_qa": {
+      "original": 80,
+      "effective": 80
+    }
+  },
+  "config": {
+    "model": "hf",
+    "model_args": {
+      "pretrained": "data_500m/sft/model",
+      "dtype": "bfloat16"
+    },
+    "model_num_parameters": 528538752,
+    "model_dtype": "torch.bfloat16",
+    "model_revision": "main",
+    "model_sha": "",
+    "batch_size": "16",
+    "batch_sizes": [],
+    "device": "cuda:0",
+    "use_cache": null,
+    "limit": null,
+    "bootstrap_iters": 100000,
+    "gen_kwargs": {},
+    "random_seed": 0,
+    "numpy_seed": 1234,
+    "torch_seed": 1234,
+    "fewshot_seed": 1234
+  },
+  "git_hash": "bbe0e32",
+  "date": 1784784656.5122764,
+  "pretty_env_info": "PyTorch version: 2.13.0+cu130\nIs debug build: False\nCUDA used to build PyTorch: 13.0\nROCM used to build PyTorch: N/A\n\nOS: Ubuntu 24.04.4 LTS (x86_64)\nGCC version: (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nClang version: Could not collect\nCMake version: Could not collect\nLibc version: glibc-2.39\n\nPython version: 3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0] (64-bit runtime)\nPython platform: Linux-6.8.0-124-generic-x86_64-with-glibc2.39\nIs CUDA available: True\nCUDA runtime version: 13.2.51\nCUDA_MODULE_LOADING set to: \nGPU models and configuration: \nGPU 0: NVIDIA B200\nGPU 1: NVIDIA B200\nGPU 2: NVIDIA B200\nGPU 3: NVIDIA B200\nGPU 4: NVIDIA B200\nGPU 5: NVIDIA B200\nGPU 6: NVIDIA B200\nGPU 7: NVIDIA B200\n\nNvidia driver version: 595.71.05\ncuDNN version: Could not collect\nIs XPU available: False\nHIP runtime version: N/A\nMIOpen runtime version: N/A\nIs XNNPACK available: False\nCaching allocator config: N/A\n\nCPU:\nArchitecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           52 bits physical, 57 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  64\nOn-line CPU(s) list:                     0-63\nVendor ID:                               GenuineIntel\nModel name:                              Intel(R) Xeon(R) Gold 6444Y\nCPU family:                              6\nModel:                                   143\nThread(s) per core:                      2\nCore(s) per socket:                      16\nSocket(s):                               2\nStepping:                                8\nCPU(s) scaling MHz:                      94%\nCPU max MHz:                             3600.0000\nCPU min MHz:                             800.0000\nBogoMIPS:                                7200.00\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid dca sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb cat_l3 cat_l2 cdp_l3 intel_ppin cdp_l2 ssbd mba ibrs ibpb stibp ibrs_enhanced tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb intel_pt avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local split_lock_detect user_shstk avx_vnni avx512_bf16 wbnoinvd dtherm arat pln pts hfi vnmi avx512vbmi umip pku ospke waitpkg avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg tme avx512_vpopcntdq la57 rdpid bus_lock_detect cldemote movdiri movdir64b enqcmd fsrm md_clear serialize tsxldtrk pconfig arch_lbr ibt amx_bf16 avx512_fp16 amx_tile amx_int8 flush_l1d arch_capabilities ibpb_exit_to_user\nVirtualization:                          VT-x\nL1d cache:                               1.5 MiB (32 instances)\nL1i cache:                               1 MiB (32 instances)\nL2 cache:                                64 MiB (32 instances)\nL3 cache:                                90 MiB (2 instances)\nNUMA node(s):                            2\nNUMA node0 CPU(s):                       0-15,32-47\nNUMA node1 CPU(s):                       16-31,48-63\nVulnerability Gather data sampling:      Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; PBRSB-eIBRS SW sequence; BHI BHI_DIS_S\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB before exit to userspace\n\nVersions of relevant libraries:\n[pip3] numpy==2.5.1\n[pip3] nvidia-cublas==13.1.1.3\n[pip3] nvidia-cuda-cupti==13.0.85\n[pip3] nvidia-cuda-nvrtc==13.0.88\n[pip3] nvidia-cuda-runtime==13.0.96\n[pip3] nvidia-cudnn-cu13==9.20.0.48\n[pip3] nvidia-cufft==12.0.0.61\n[pip3] nvidia-curand==10.4.0.35\n[pip3] nvidia-cusolver==12.0.4.66\n[pip3] nvidia-cusparse==12.6.3.3\n[pip3] nvidia-cusparselt-cu13==0.8.1\n[pip3] nvidia-nccl-cu13==2.29.7\n[pip3] nvidia-nvjitlink==13.3.33\n[pip3] nvidia-nvtx==13.0.85\n[pip3] onnx==1.22.0\n[pip3] onnxruntime==1.27.0\n[pip3] optimum-onnx==0.1.0\n[pip3] torch==2.13.0\n[pip3] triton==3.7.1\n[conda] Could not collect",
+  "transformers_version": "4.46.3",
+  "lm_eval_version": "0.4.12",
+  "upper_git_hash": null,
+  "tokenizer_pad_token": [
+    "<|pad|>",
+    "2"
+  ],
+  "tokenizer_eos_token": [
+    "<|eos|>",
+    "1"
+  ],
+  "tokenizer_bos_token": [
+    "<|bos|>",
+    "0"
+  ],
+  "eot_token_id": 1,
+  "max_length": 1024,
+  "task_hashes": {},
+  "model_source": "hf",
+  "model_name": "data_500m/sft/model",
+  "model_name_sanitized": "data_500m__sft__model",
+  "system_instruction": null,
+  "system_instruction_sha": null,
+  "fewshot_as_multiturn": null,
+  "chat_template": null,
+  "chat_template_sha": null,
+  "total_evaluation_time_seconds": "49.18655050266534"
+}

@@ -1,0 +1,31 @@
+# CaseHOLD, via its LexGLUE packaging (coastalcph/lex_glue, config "case_hold").
+# Not in lm-eval-harness's default task registry, so this task config is
+# custom-authored, but points at the same accepted HF dataset/format used in
+# the original CaseHOLD paper (Zheng et al., 2021) and the LexGLUE benchmark
+# (Chalkidis et al., 2021): 5-way multiple choice, pick the correct masked
+# holding statement for a case excerpt. Context averages ~850 chars (~200
+# tokens) -- comfortably fits this project's 1,024-token context, unlike
+# LexGLUE's SCOTUS/ECtHR/EUR-LEX tasks (tens of thousands of chars each),
+# which were deliberately excluded from this eval for that reason.
+tag:
+  - multiple_choice
+  - legal
+task: case_hold
+dataset_path: coastalcph/lex_glue
+dataset_name: case_hold
+output_type: multiple_choice
+training_split: train
+validation_split: validation
+test_split: test
+doc_to_text: "{{context}}"
+doc_to_target: "{{label}}"
+doc_to_choice: "endings"
+metric_list:
+  - metric: acc
+    aggregation: mean
+    higher_is_better: true
+  - metric: acc_norm
+    aggregation: mean
+    higher_is_better: true
+metadata:
+  version: 1.0
