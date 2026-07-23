@@ -161,7 +161,7 @@ leave a retrieval-augmented extension to future work.
 
 \textbf{General-purpose benchmarks and evaluation infrastructure.} We use
 \texttt{lm-evaluation-harness} \citep{eval-harness}, the framework behind
-Hugging Face's Open LLM Leaderboard, and its built-in HellaSwag
+a widely used public LLM leaderboard, and its built-in HellaSwag
 \citep{zellers2019hellaswag}, ARC-Easy \citep{clark2018arc}, PIQA
 \citep{bisk2020piqa}, and MMLU \citep{hendrycks2021mmlu} tasks as a
 peer-comparison reference point against other small models, separate from
@@ -404,7 +404,7 @@ The evaluations above are entirely in-house: our own held-out split, our
 own extraction/classification scoring, our own judge model. To check the
 same claims against outside measurement, we additionally evaluate both
 models with \texttt{lm-evaluation-harness} \citep{eval-harness}, the
-framework underlying Hugging Face's Open LLM Leaderboard, across five
+framework underlying a widely used public LLM leaderboard, across five
 categories, on the deployed fine-tuned checkpoints.
 
 \subsection{Task selection}
@@ -603,7 +603,7 @@ rather than treating the count alone as a verdict:
 \toprule
 \textbf{LegalBench task} & \textbf{Docs affected} & \textbf{What it actually is} \\
 \midrule
-\texttt{consumer\_contracts\_qa} & 3 / 396 & Facebook's real, public Terms of Service \\
+\texttt{consumer\_contracts\_qa} & 3 / 396 & A real, publicly available consumer-facing company's Terms of Service \\
 \texttt{contract\_nli\_limited\_use} & 1 / 208 & A standard, widely reused NDA template \\
 \texttt{citation\_prediction\_classification} & 1 / 108 & A real historic court opinion, present in \\
  & & both datasets independently \\

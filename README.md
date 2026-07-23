@@ -21,7 +21,7 @@ text → a fine-tuned model that answers questions about it.**
 | Architecture | Llama decoder · 12L · 768d · 12 heads · 1024 ctx |
 | Tokenizer | 16,384 byte-level BPE, trained on this corpus |
 | Training data | 2.04B unique tokens (US case law + SEC filings + educational web) |
-| Pretraining | 2 epochs (38,890 steps) on 8×B200 (on-prem), bfloat16 |
+| Pretraining | 2 epochs (38,890 steps), on-prem, bfloat16 |
 | Held-out perplexity | 7.76 (val loss 2.049, full val set) |
 
 > **Two models, two behaviors.** The **base** model continues text; it does not
@@ -59,10 +59,10 @@ Phase 1  clean             →  stream + deterministic cleaning        → /data
 Phase 2  dedup + decontam  →  MinHash-LSH + exact + 13-gram strip    → /data/corpus
 Phase 3  tokenizer         →  train a 16,384 byte-level BPE          → /data/tokenizer
 Phase 4  tokenize + pack   →  uint16 1024-token windows, 99/1 split  → /data/tokens
-Phase 5  pretrain          →  8×H100 DDP, 2 epochs                   → /data/checkpoints
+Phase 5  pretrain          →  multi-accelerator DDP, 2 epochs         → /data/checkpoints
 Phase 6  evaluate + push   →  full-val perplexity + upload to HF
 Phase 7  serve             →  Modal inference endpoint + Vercel site
-Phase 8  fine-tune (SFT)   →  Gemini Q&A dataset → 1×L4 fine-tune     → /data/sft
+Phase 8  fine-tune (SFT)   →  Gemini Q&A dataset → single-accelerator fine-tune → /data/sft
 ```
 
 All durable artifacts live on one Modal Volume (`slm-125m`) mounted at `/data`,
@@ -76,7 +76,7 @@ so any phase can be re-run or resumed independently.
 | `cleaning.py` | Deterministic, rule-based document cleaning (pure functions) |
 | `dedup.py` | Hash / shingle / n-gram helpers for dedup + decontamination |
 | `modal_app.py` | Modal app: images, Volume, and one function per phase (0–4, plus pretrain & evaluate) |
-| `train.py` | Standalone DDP training loop, launched under `torchrun` on 8×H100 |
+| `train.py` | Standalone DDP training loop, launched under `torchrun` on multiple accelerators |
 | `inference.py` | Modal scale-to-zero CPU endpoint that streams base-model completions (Phase 7) |
 | `inference_chat.py` | Modal scale-to-zero CPU endpoint that streams the fine-tuned model's chat replies |
 | `web/` | Next.js 16 front end on Vercel — the live playground **and chat** |
@@ -86,7 +86,8 @@ so any phase can be re-run or resumed independently.
 ## Prerequisites
 
 1. **Modal** — `pip install modal && modal token new` (free tier includes monthly
-   compute credits). The GPU phase needs H100 access on your Modal plan.
+   compute credits). The pretraining phase needs enough Modal GPU access to
+   run an 8-accelerator DDP job on your plan.
 2. **Hugging Face** — a token with the **write** role
    (huggingface.co/settings/tokens); needed to push the models in Phases 6 and 8.
    For fine-tuning (Phase 8) you also need a **Google Gemini API key**
@@ -184,7 +185,7 @@ modal run modal_app.py::tokenize
 99/1 split). Writes `/data/tokens/{train,val}/*.bin` and `index.json`. Expect
 **train ≈ 2.04B tokens (1,991,282 windows), val ≈ 20.6M tokens (20,119 windows)**.
 
-### Phase 5 — pretrain on 8×H100 (GPU)
+### Phase 5 — pretrain on 8 accelerators
 ```bash
 modal run modal_app.py::pretrain_smoke      # 30-step sanity check
 modal run modal_app.py::pretrain_run        # full 2-epoch run (compile ON)
@@ -206,7 +207,7 @@ Checkpoints (`/data/checkpoints/ckpt.pt`) make the run **resumable** — if it d
 
 ### Phase 6 — evaluate + push to Hugging Face
 ```bash
-modal run modal_app.py::evaluate           # full-val perplexity + sample generations (1×L4)
+modal run modal_app.py::evaluate           # full-val perplexity + sample generations (single accelerator)
 ```
 Then download the finished model + tokenizer from the Volume and upload them to
 your HF repo (set `HF_REPO` in `config.py` first):
@@ -230,12 +231,12 @@ vercel deploy --prod                        # ship to Vercel
 token-by-token streaming; it scales to zero when idle (≈ $0). The Next.js site
 calls it and renders the completion live.
 
-### Phase 8 — fine-tune into a Q&A assistant (Gemini + 1×L4)
+### Phase 8 — fine-tune into a Q&A assistant (Gemini + single accelerator)
 ```bash
 modal run finetune.py::pilot          # 20-passage sanity + live cost projection
 modal run finetune.py::build          # generate + LLM-judge the full Q&A set
 modal run finetune.py::curate_run     # dedup + format + tokenize (own tokenizer)
-modal run train_sft.py::run --epochs 2  # supervised fine-tune on 1×L4
+modal run train_sft.py::run --epochs 2  # supervised fine-tune on a single accelerator
 ```
 This turns the base model into one that *answers* questions. It is a full stage in
 its own right — see **[Fine-tuning: from base model to Q&A assistant](#fine-tuning-from-base-model-to-qa-assistant)**
@@ -341,7 +342,7 @@ optimization.
 - **bfloat16** keeps fp32's full 8-bit exponent (same dynamic range) with fewer
   mantissa bits, so — unlike fp16 — it needs **no loss-scaling** and won't
   overflow/underflow during training, while halving memory bandwidth and doubling
-  throughput on H100 tensor cores. It is the modern default for LLM pretraining.
+  throughput on modern tensor cores. It is the modern default for LLM pretraining.
 - We **compute** in bf16 (autocast) but keep the master weights and optimizer state
   in **fp32**, so the tiny gradient updates accumulate with full numerical precision.
 - We **save** the final weights in **fp32** (a lossless ~480MB `safetensors`) so the
@@ -453,7 +454,7 @@ only re-introduce the fragility from Phase 5 for zero speedup.
 |---|---|
 | Base | `DeependraVerma/slm-125m-base` (this repo's own Phase 5 output) |
 | Method | **full fine-tune** (not LoRA) |
-| Hardware | 1 GPU on this box's 8×B200 (on-prem, free — original design targeted 1×L4) |
+| Hardware | 1 accelerator, on-prem, free (original design targeted a single cloud accelerator) |
 | Epochs | 2 |
 | LR | 3e-5, cosine decay, 3% warmup |
 | Precision | bf16 compute, fp32 master weights |
@@ -523,19 +524,19 @@ honest about it helps you budget:
 
 | Resource | Cost | What |
 |---|---|---|
-| H100 (Modal) | ~$36 | Phase 5: 2-epoch pretraining (plus some avoidable debugging waste) |
+| Cloud GPU, 8-way (Modal) | ~$36 | Phase 5: 2-epoch pretraining (plus some avoidable debugging waste) |
 | CPU (Modal) | ~$2 | Phases 0–4 data pipeline |
-| L4 (Modal) | ~$0.07 | Phase 6 evaluation |
+| Cloud GPU, single (Modal) | ~$0.07 | Phase 6 evaluation |
 | Deployed inference (Modal) | ~$0.06 | Phase 7 endpoint (scale-to-zero) |
 | Gemini API | ~$2.0 | Phase 8: Q&A synthesis (~$0.45) + LLM-judge (~$1.54) |
-| L4 (Modal) | ~$0.05 | Phase 8: 2-epoch fine-tune |
+| Cloud GPU, single (Modal) | ~$0.05 | Phase 8: 2-epoch fine-tune |
 | **Total usage** | **~$41** | Modal (~$39) + Gemini (~$2) |
 
 Modal's free tier (~$30/month credits) absorbs most of the Modal spend; out-of-pocket
 for the Modal side was ~$9, and the fine-tuning stage (Phases 8) added only ~$2 of
 Gemini + $0.05 of GPU. **The single biggest lever is the pretraining GPU spend** —
-fewer epochs or a single-H100 run cost proportionally less. Everything except Phase
-5 is cents.
+fewer epochs or a single-accelerator run cost proportionally less. Everything except
+Phase 5 is cents.
 
 ## Gotchas we already paid for
 

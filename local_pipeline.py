@@ -1,5 +1,5 @@
-"""On-prem port of modal_app.py Phases 0-4 (this box has 8x B200s, no Modal needed
-for compute). Same logic as modal_app.py, ported from Modal `.map()`/`.starmap()`
+"""On-prem port of modal_app.py Phases 0-4 (this box has its own on-prem
+compute, no Modal needed). Same logic as modal_app.py, ported from Modal `.map()`/`.starmap()`
 across cloud containers to a local ProcessPoolExecutor, and from Modal Volume
 writes to plain local disk under config.DATA_ROOT (set SLM_DATA_ROOT to control
 where that is).

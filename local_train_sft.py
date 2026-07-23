@@ -1,7 +1,7 @@
 """On-prem port of train_sft.py (Phase 8, step 2): supervised fine-tuning of
 our own pretrained 125M base model on our curated Q&A set. Same logic as
-train_sft.py, ported from a Modal `@app.function(gpu="L4")` step to a plain
-script -- no Modal Volume, no Modal Secret, no Modal image. Reads/writes
+train_sft.py, ported from a Modal single-accelerator function step to a
+plain script -- no Modal Volume, no Modal Secret, no Modal image. Reads/writes
 plain local disk under config.DATA_ROOT (set SLM_DATA_ROOT, same as
 local_pipeline.py / train.py).
 
@@ -9,7 +9,8 @@ Single GPU, full fine-tune, bf16 autocast on fp32 master weights, loss only
 on the answer tokens (labels were pre-masked to -100 by local_finetune.py's
 curate step). No DDP / torch.compile -- the workload is tiny (a few thousand
 short examples) and single-GPU keeps it simple and robust, same as the
-original L4 design; this box's B200s are more than sufficient for one GPU.
+original design; this box's on-prem hardware is more than sufficient for
+one GPU's worth of work.
 
     export SLM_DATA_ROOT=/raid/llm_sec/legal-slm-125M/data
     .venv/bin/python3 local_train_sft.py --epochs 2

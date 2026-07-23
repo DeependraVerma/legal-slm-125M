@@ -47,7 +47,7 @@ export const NUMBERS = [
 // Infra detail, intentionally kept out of the headline NUMBERS grid — real,
 // but not something a first-time (recruiter / non-ML) visitor needs up top.
 // Shown small, deeper in the page, next to the architecture detail.
-export const INFRA_NOTE = "Pretrained on 8 × B200 GPUs (on-prem) · bfloat16 compute";
+export const INFRA_NOTE = "Pretrained on-prem, from a random initialization · bfloat16 compute";
 
 export const ARCH = [
   { k: "Architecture", v: "Llama-style decoder" },

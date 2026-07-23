@@ -117,10 +117,11 @@ def _source_files(directory: str, src: str) -> list[str]:
 
 SEQ_LEN = config.SEQ_LEN
 T = config.TRAIN
-B200_BF16_PEAK = 2_250e12  # per-GPU bf16 dense flops -- train.py's 125M script still
-#  uses H100_BF16_PEAK (989e12), a known cosmetic-only MFU-logging artifact carried
-#  over from the Modal-era config (confirmed in that build's own results: MFU read
-#  ~57% instead of a lower, correctly-B200-relative number). Using the real B200
+PRETRAIN_BF16_PEAK = 2_250e12  # per-accelerator bf16 dense flops for this build's
+#  hardware -- train.py's 125M script still uses the previous build's peak-flops
+#  figure (989e12), a known cosmetic-only MFU-logging artifact carried over from
+#  the Modal-era config (confirmed in that build's own results: MFU read ~57%
+#  instead of a lower, correctly-relative number). Using this build's real
 #  figure here so this build's own MFU% log line is meaningful, not inherited noise.
 
 
@@ -318,7 +319,7 @@ def main():
             dt = time.time() - t0
             t0 = time.time()
             tok_s = T.global_batch_tokens * (log_every if step else 1) / max(1e-6, dt)
-            mfu = flops_per_tok * tok_s / (world * B200_BF16_PEAK)
+            mfu = flops_per_tok * tok_s / (world * PRETRAIN_BF16_PEAK)
             log(rank, f"step {step:>5}/{max_steps} | loss {loss_accum.item():.4f} | "
                       f"lr {lr:.2e} | grad_norm {norm.item():.2f} | "
                       f"{tok_s/1e3:.0f}k tok/s | mfu {mfu:.1%}")

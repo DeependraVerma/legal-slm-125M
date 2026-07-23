@@ -37,7 +37,7 @@ export const NUMBERS = [
   { k: "Case-law / SEC / fineweb-edu ppl", v: "7.23 / 3.96 / 17.81", note: "all better than the 125M model" },
 ] as const;
 
-export const INFRA_NOTE = "Pretrained on 8 × B200 GPUs (on-prem) · bfloat16 compute · shares the 125M model's tokenizer";
+export const INFRA_NOTE = "Pretrained on-prem, from a random initialization · bfloat16 compute · shares the 125M model's tokenizer";
 
 export const ARCH = [
   { k: "Architecture", v: "Llama-style decoder" },
