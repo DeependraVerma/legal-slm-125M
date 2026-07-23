@@ -1,0 +1,718 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{natbib}
+\usepackage{caption}
+\usepackage{enumitem}
+
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+
+\title{\textbf{From-Scratch Small Language Models for Legal and Financial Text:\\
+A Staged Pretraining Recipe and an Honest Account of Their Limits}}
+
+\author{Deependra Verma \\
+Independent Researcher \\
+\texttt{deependra.verma00@gmail.com}}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We build two decoder-only language models from scratch --- 125.8M and 528.5M
+parameters --- pretrained on US case law, SEC filings, and educational web
+text, then fine-tuned for legal and financial question answering. We report
+three findings we believe are broadly useful beyond this specific project.
+First, naively mixing five heterogeneous pretraining sources at their natural
+size proportions measurably \emph{hurts} held-out quality on the original,
+smaller sources (fineweb-edu perplexity worsens from 20.73 to 22.82 despite
+more total training data); a staged Warmup-Stable-Decay schedule, adapted
+from MiniCPM and SmolLM2, recovers this and improves perplexity on every
+shared domain over the smaller model. Second, a subtle supervised
+fine-tuning failure mode --- two datasets sharing clause-category names
+under different task framings (extraction vs.\ classification) --- causes
+the model to collapse to bare label output regardless of what is asked;
+we document the bug, its 100\% reproduction rate, and the fix. Third, and
+most centrally, we run both models through five externally accepted
+benchmark categories via \texttt{lm-evaluation-harness}
+\citep{eval-harness} and find a sharp, consistent split: open-book
+contract-clause tasks (given a passage, answer about it) are a real,
+usable capability, while closed-book legal knowledge and reasoning
+(MMLU legal subsets, CaseHOLD) sit at or \emph{below} random chance for
+both model sizes. We further report a methodological case study on
+legal-domain contamination checking: a naive $n$-gram overlap check flags
+an implausible 8{,}712 lines as ``contaminated,'' which on inspection are
+uniformly generic legal boilerplate (standard-of-review language, ToS
+disclaimer text, canonical precedent quotations) rather than evidence of
+benchmark leakage; a stricter 40-word contiguous-run threshold combined
+with per-hit provenance attribution narrows this to 5 of 1{,}853 documents
+(0.27\%), each independently explainable and none affecting the reported
+results. We release both models, the fine-tuning data recipe, an
+in-browser ONNX deployment, and all evaluation code.
+\end{abstract}
+
+\section{Introduction}
+
+Small (sub-billion-parameter) language models trained from scratch on a
+narrow domain are cheap to build and easy to deploy, including entirely
+client-side in a browser, but their actual capabilities and failure modes
+are not always reported with the same rigor as frontier-model releases.
+This paper documents an end-to-end build of two such models for legal and
+financial text -- a 125.8M-parameter model and a 528.5M-parameter successor
+-- with a specific focus on three questions that matter more for a
+deployed small model than raw benchmark leaderboard position: (1) does
+adding more pretraining sources actually help, or can naive mixing hurt
+it; (2) what training failure modes appear at this scale that would not
+be caught by aggregate loss curves alone; and (3) once a model is
+fine-tuned into a question-answering assistant, does it hold up against
+external, accepted evaluation, not just an in-house test set built by the
+same team that built the model.
+
+Our contributions:
+\begin{enumerate}[nosep]
+  \item Two from-scratch Llama-style decoder language models
+    \citep{touvron2023llama} at 125.8M and 528.5M parameters, with a
+    shared byte-level BPE tokenizer, trained on US case law, SEC filings,
+    and educational web text.
+  \item A staged (Warmup-Stable-Decay) pretraining data schedule that
+    fixes a directly measured regression from naive proportional mixing
+    across five heterogeneous sources, improving held-out perplexity on
+    every domain shared between the two model generations.
+  \item A supervised fine-tuning recipe combining expert-annotated legal
+    datasets (CUAD, LEDGAR) with teacher-distilled question answering
+    data, including a documented failure mode -- category-name collision
+    between an extraction task and a classification task -- and its fix.
+  \item A paired evaluation protocol (both model sizes answering the
+    \emph{identical} held-out questions) showing that scaling improves
+    aggregate metrics without being uniformly better on every individual
+    question.
+  \item External validation across five benchmark categories via
+    \texttt{lm-evaluation-harness}, with an explicit methodological case
+    study on why naive contamination checking over-flags legal text
+    specifically, and how to fix it.
+  \item Public release of both models, the fine-tuning dataset recipe, an
+    ONNX export for in-browser inference, and the full evaluation
+    codebase, including the custom benchmark task configurations
+    described in Section~\ref{sec:external}.
+\end{enumerate}
+
+\section{Related Work}
+
+\textbf{Small and efficient language models.} A line of recent work shows
+that careful data curation and training schedules can substitute for
+scale: Pythia, OLMo, TinyLlama, Phi, MiniCPM \citep{hu2024minicpm}, and
+SmolLM2 \citep{allal2025smollm2} all report staged or curriculum-style
+data schedules as part of achieving strong small-model results. We adopt
+MiniCPM's Warmup-Stable-Decay (WSD) scheduling idea directly, applying it
+not to a learning-rate schedule but to per-source sampling weights, to fix
+a data-mixing problem specific to combining a small set of curated,
+high-value sources with much larger bulk sources.
+
+\textbf{Domain-specific legal and financial language models.} BloombergGPT
+\citep{wu2023bloomberggpt} and SaulLM \citep{colombo2024saullm} both
+pretrain at much larger scale (50B and 7B+ parameters, respectively) on
+finance- and law-specific corpora. Our work asks a complementary question:
+how far can a domain-specific model go at two to three orders of magnitude
+fewer parameters, and where precisely does it stop working.
+
+\textbf{Legal NLP benchmarks.} We evaluate against CUAD
+\citep{hendrycks2021cuad}, an expert-annotated contract clause extraction
+dataset; LexGLUE \citep{chalkidis2021lexglue}, which packages LEDGAR
+(clause classification) and CaseHOLD together with several other legal
+tasks; the original CaseHOLD dataset \citep{zheng2021casehold}, a
+5-way multiple-choice legal holding identification task; and LegalBench
+\citep{guha2023legalbench}, a 162-task collaboratively built benchmark
+for legal reasoning, from which we construct a 12-task contract-focused
+subset (Section~\ref{sec:legalbench}). A concurrent study
+\citep{vaddi2026smallmodels} evaluates sub-10B models (including a
+3B-active mixture-of-experts model) on ContractNLI, CaseHOLD, and ECtHR
+under five prompting strategies including retrieval-augmented generation,
+finding that architecture and training quality matter more than raw
+parameter count within that range; our work looks two further orders of
+magnitude down in scale, at models an order of magnitude smaller than
+even that study's smallest model, without retrieval augmentation, to
+characterize what remains possible under those constraints.
+
+\textbf{Capacity and memorization.} \citet{allenzhu2024physics} estimate
+that language models store roughly 2 bits of knowledge per parameter, a
+hard ceiling largely independent of training recipe. \citet{carlini2022quantifying}
+show memorization rate scales sharply with how many times a fact is
+repeated in training data, with facts seen once memorized at a small
+fraction of the rate of facts seen hundreds of times. Both results
+directly motivate our closed-book/open-book framing: a model this size
+cannot be expected to reliably recall specific, low-repetition legal
+facts from parametric memory, regardless of fine-tuning quality.
+
+\textbf{Retrieval-augmented generation.} \citet{lewis2020rag} introduce
+retrieval-augmented generation as a way to decouple a model's reasoning
+ability from its need to memorize facts. We view retrieval as a
+complementary, largely orthogonal direction to the one studied here: this
+paper characterizes purely parametric capability at small scale, which we
+believe is a necessary baseline before layering retrieval on top, and we
+leave a retrieval-augmented extension to future work.
+
+\textbf{General-purpose benchmarks and evaluation infrastructure.} We use
+\texttt{lm-evaluation-harness} \citep{eval-harness}, the framework behind
+Hugging Face's Open LLM Leaderboard, and its built-in HellaSwag
+\citep{zellers2019hellaswag}, ARC-Easy \citep{clark2018arc}, PIQA
+\citep{bisk2020piqa}, and MMLU \citep{hendrycks2021mmlu} tasks as a
+peer-comparison reference point against other small models, separate from
+our legal-domain-specific claims.
+
+\section{Architecture}
+
+Both models share a Llama-style decoder architecture
+\citep{touvron2023llama}: RoPE positional encoding \citep{su2021roformer},
+SwiGLU activations \citep{shazeer2020glu}, RMSNorm \citep{zhang2019rmsnorm},
+and tied input/output embeddings. The 500M model is a straightforward
+width-and-depth scale-up; both share the same 16{,}384-token byte-level
+BPE tokenizer, trained once and reused rather than retrained, so that
+tokenization is not a confound in the size comparison in
+Section~\ref{sec:paired}.
+
+\begin{table}[h]
+\centering
+\caption{Architecture comparison.}
+\label{tab:arch}
+\begin{tabular}{lrr}
+\toprule
+ & \textbf{125M model} & \textbf{500M model} \\
+\midrule
+Parameters & 125,848,320 & 528,538,752 \\
+Layers & 12 & 24 \\
+Hidden size & 768 & 1{,}152 \\
+Attention heads & 12 & 18 \\
+Head dimension & 64 & 64 \\
+MLP (SwiGLU) intermediate size & 3{,}072 & 4{,}608 \\
+Context length (tokens) & 1{,}024 & 1{,}024 \\
+Vocabulary & \multicolumn{2}{c}{16{,}384 byte-level BPE (shared)} \\
+Positional encoding & \multicolumn{2}{c}{RoPE, $\theta = 10{,}000$} \\
+Normalization & \multicolumn{2}{c}{RMSNorm, $\epsilon = 10^{-5}$} \\
+Embeddings & \multicolumn{2}{c}{tied input/output} \\
+Precision & \multicolumn{2}{c}{bf16 compute, fp32 master weights} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Pretraining Data and the Staged Mixing Schedule}
+\label{sec:pretrain}
+
+\subsection{Sources}
+
+The 125M model pretrains on three sources: US case law
+(\texttt{HFforLegal/case-law}, CC~BY~4.0), SEC 10-K filings
+(\texttt{PleIAs/SEC}), and educational web text
+(\texttt{HuggingFaceFW/fineweb-edu} \citep{penedo2024fineweb}, ODC-BY), at
+a 35\%/42\%/23\% mix, totalling 2.04B unique tokens over 2 epochs
+(4.08B tokens seen), reaching a held-out perplexity of 7.76.
+
+The 500M model adds two large bulk sources -- SEC 10-K/10-Q/8-K filings
+(\texttt{TeraflopAI/SEC-EDGAR}, Apache-2.0) and additional US case law
+(\texttt{common-pile/caselaw\_access\_project}, public domain) -- for
+five sources totalling 14.7B unique tokens after cleaning, deduplication,
+and 13-gram decontamination against CaseHOLD and LexGLUE (see
+Section~\ref{sec:contamination-method} for why this specific decontamination
+step matters). Given the larger unique-token budget, this model trains
+for a single epoch rather than two.
+
+\subsection{A measured regression from naive mixing}
+\label{sec:flatmix}
+
+Our first attempt mixed all five sources proportionally to their natural
+size. Because the two new bulk sources are far larger than the three
+original sources, this diluted the original case-law/SEC/fineweb-edu
+``identity'' of the smaller model down to roughly 13\% of total training
+tokens combined. The result was not neutral: held-out perplexity on
+fineweb-edu, one of the three original sources, \emph{worsened} from 20.73
+(125M model) to 22.82 under this flat mix, despite the 500M model having
+more parameters and more total training data. Naive proportional mixing
+of heterogeneous sources is not a safe default; it can actively regress
+quality on the sources it dilutes.
+
+\subsection{Staged (Warmup-Stable-Decay) fix}
+
+Following the staged-schedule precedent in MiniCPM \citep{hu2024minicpm}
+and SmolLM2 \citep{allal2025smollm2}, we replace the flat mix with a
+two-phase per-source sampling schedule: broad, size-balanced weights for
+the first 85\% of training steps (\emph{stable} phase), then a
+\emph{decay} phase for the final 15\% of steps that upweights the three
+original, curated sources specifically, so the model sees them last and
+retains them most strongly.
+
+\begin{table}[h]
+\centering
+\caption{Per-source sampling weights, stable vs.\ decay phase.}
+\label{tab:wsd}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Source} & \textbf{Stable weight} & \textbf{Decay weight} \\
+\midrule
+fineweb-edu & 0.15 & 0.30 \\
+case-law & 0.13 & 0.25 \\
+SEC 10-K & 0.15 & 0.25 \\
+SEC-EDGAR (bulk) & 0.30 & 0.12 \\
+Case law (bulk) & 0.27 & 0.08 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This changes only which windows of already-tokenized data are sampled at
+each training step; it required no new data engineering, and did not
+change total step count, token budget, or wall-clock time relative to the
+flat-mix run.
+
+\subsection{Result: perplexity on every shared domain improves}
+
+\begin{table}[h]
+\centering
+\caption{Held-out perplexity, 500M (staged schedule) vs.\ 125M.
+SEC-EDGAR and case law (bulk) have no 125M-model baseline, since those
+sources did not exist in the smaller model's pretraining mix.}
+\label{tab:ppl}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Source} & \textbf{125M} & \textbf{500M (staged)} \\
+\midrule
+US case law & 8.22 & \textbf{7.23} \\
+SEC 10-K & 4.36 & \textbf{3.96} \\
+Educational web (fineweb-edu) & 20.73 & \textbf{17.81} \\
+SEC-EDGAR (bulk) & --- & 3.84 \\
+US case law (bulk) & --- & 8.23 \\
+\midrule
+Aggregate (all sources in each model's val set) & 7.763 & 5.072 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The staged schedule not only recovers the flat-mix regression but improves
+perplexity over the 125M baseline on all three shared domains. We flag one
+honesty caveat explicitly: the aggregate number looks like a larger win
+than the per-source numbers alone would suggest, because SEC-EDGAR
+(inherently more repetitive, formulaic text) makes up roughly 61\% of the
+500M model's validation set by window count. We treat the per-source
+numbers, not the aggregate, as the trustworthy signal.
+
+\section{Supervised Fine-Tuning}
+
+\subsection{Data recipe}
+
+We combine two complementary sources of supervision into 21{,}186
+instruction pairs (20{,}127 train / 1{,}059 held-out validation):
+
+\begin{itemize}[nosep]
+  \item \textbf{Expert-annotated contract data} (ground truth, no
+    synthetic generation): CUAD \citep{hendrycks2021cuad} for clause
+    extraction, and LEDGAR (via LexGLUE \citep{chalkidis2021lexglue}) for
+    clause classification across 100 categories, both CC~BY~4.0.
+  \item \textbf{Teacher-distilled question answering}: a locally hosted
+    Meta-Llama-3.1-70B-Instruct model generates grounded question-answer
+    pairs from passages of the pretraining corpus, judged for quality by
+    a combination of NVIDIA Nemotron-Ultra-550B and the same Llama-70B
+    teacher, keeping only pairs scoring $\geq 4/5$.
+\end{itemize}
+
+Source mix: CUAD ($\sim$51\%), LEDGAR ($\sim$22\%), SEC filings
+($\sim$13\%), US case law ($\sim$12\%), educational web ($\sim$2.5\%).
+Task mix: extraction ($\sim$60\%), classification ($\sim$22\%), question
+answering ($\sim$14\%), summarization ($\sim$5\%), rewriting ($<$1\%).
+
+\subsection{A category-name collision failure mode}
+\label{sec:collision}
+
+A handful of clause categories exist under the same name in both CUAD
+(where the task is ``extract and quote the relevant text'') and LEDGAR
+(where the task is ``name the category'') -- for example \emph{Governing
+Law}, \emph{Effective Date}, \emph{Insurance}, and
+\emph{Non-Disparagement}. Training on both datasets simultaneously caused
+the model to collapse to emitting the bare category name for these
+specific clause types \emph{regardless of which task it was actually
+asked to perform} -- confirmed with a 100\% reproduction rate on
+held-out contracts and hand-written test excerpts before the fix. We
+resolved this by removing the roughly 400 conflicting LEDGAR examples for
+the affected categories and reformatting all LEDGAR answers into a
+structurally distinct template (\texttt{"This clause is categorized as:
+X"}) rather than a bare label, so extraction and classification outputs
+remain distinguishable throughout training regardless of category-name
+overlap. We report this in detail because it is a failure mode that would
+not be visible from aggregate training loss and only surfaced through
+targeted qualitative inspection of held-out generations.
+
+\subsection{Training procedure}
+
+Both models are fully fine-tuned (not LoRA) from their respective base
+checkpoints, at learning rate $3\times10^{-5}$ with cosine decay and 3\%
+warmup, bf16 compute with fp32 master weights, loss masked to answer
+tokens only. The 500M model's fine-tune ran for 2 epochs; validation loss
+ticked up between epoch 1 and epoch 2 (0.1840 $\to$ 0.1887), a directly
+measured overfitting signal on a dataset of this size that we take as
+evidence against training further epochs without additional data, rather
+than as a defect to engineer around.
+
+\section{In-House Evaluation}
+
+\begin{table}[h]
+\centering
+\caption{In-house held-out evaluation (1{,}059 validation examples),
+same methodology for both models: extraction/classification scored
+against ground truth, open-ended question answering judged by an
+independent local Meta-Llama-3.1-70B-Instruct for semantic correctness.}
+\label{tab:inhouse}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Task} & \textbf{125M} & \textbf{500M} \\
+\midrule
+CUAD clause extraction (Token-F1) & 0.711 & \textbf{0.761} \\
+CUAD ``clause not present'' refusal accuracy & \textbf{90.1\%} & 87.7\% \\
+LEDGAR clause classification (exact-match) & 74.1\% & \textbf{77.4\%} \\
+Case law general QA (closed-book, judged) & 35.6\% & \textbf{42.2\%} \\
+SEC filings general QA (closed-book, judged) & 43.1\% & \textbf{46.9\%} \\
+Educational web general QA (closed-book, judged) & 18.2\% & \textbf{30.3\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Paired comparison: scaling helps on aggregate, not on every question}
+\label{sec:paired}
+
+Aggregate metrics alone can obscure whether a larger model is
+\emph{strictly} better or merely better \emph{on net}. We additionally ran
+a paired comparison: both models answering the identical 1{,}059 held-out
+questions, with both models' answers freshly re-judged in the same pass
+to avoid comparing across different judging runs. On CUAD extraction, the
+500M model fixed 46 questions the 125M model got wrong, but also newly
+got 25 questions wrong that the 125M model had answered correctly --- a
+net win, not a clean sweep. One concrete regression, worth citing
+directly: asked what changed conditions a defendant cited (extractable
+directly from the given source text), the 125M model correctly listed
+the real conditions; the 500M model produced a vaguer, legal-sounding but
+non-responsive answer. Bigger and better on net does not imply strictly
+better on every question, a distinction we believe matters more for a
+deployed assistant than the aggregate number alone.
+
+\section{External Benchmark Validation}
+\label{sec:external}
+
+The evaluations above are entirely in-house: our own held-out split, our
+own extraction/classification scoring, our own judge model. To check the
+same claims against outside measurement, we additionally evaluate both
+models with \texttt{lm-evaluation-harness} \citep{eval-harness}, the
+framework underlying Hugging Face's Open LLM Leaderboard, across five
+categories, on the deployed fine-tuned checkpoints.
+
+\subsection{Task selection}
+
+HellaSwag, ARC-Easy, PIQA, and MMLU's \texttt{professional\_law},
+\texttt{jurisprudence}, and \texttt{international\_law} subjects are
+built into \texttt{lm-evaluation-harness} and run unmodified. CaseHOLD
+and LegalBench required custom task configuration, since neither has an
+existing harness integration; both configs, along with all raw logs, are
+released alongside this paper.
+
+For CaseHOLD, we use its LexGLUE packaging
+(\texttt{coastalcph/lex\_glue}, config \texttt{case\_hold}): a 5-way
+multiple-choice task where the model must identify the correct masked
+holding statement for a case excerpt. We deliberately excluded LexGLUE's
+other tasks (SCOTUS, ECtHR, EUR-LEX, UNFAIR-ToS): their documents average
+tens of thousands of characters (SCOTUS alone averages roughly 70{,}700
+characters, i.e.\ well over 17{,}000 tokens in a sampled check), far
+exceeding this model's 1{,}024-token context. Truncating a document to
+under 6\% of its length to fit context and then scoring on that truncated
+prefix would not produce a number comparable to any published baseline.
+CaseHOLD's excerpts, by contrast, average approximately 850 characters
+(roughly 200 tokens) and fit comfortably.
+
+\subsection{A curated LegalBench subset}
+\label{sec:legalbench}
+
+LegalBench's 162 tasks span formats (free-text generation, multi-label
+classification, multiple choice) that do not uniformly fit
+\texttt{lm-evaluation-harness}'s simple multiple-choice scoring, and
+running the full suite was out of scope for this evaluation pass. We
+selected 12 tasks matching two criteria: binary yes/no answer format
+(scoreable as simple 2-way multiple choice) and contract-focused subject
+matter, matching this project's own CUAD/LEDGAR training domain: nine
+ContractNLI clause-entailment tasks, \texttt{contract\_qa},
+\texttt{consumer\_contracts\_qa}, and
+\texttt{citation\_prediction\_classification}. Each task's prompt is the
+benchmark's own official prompt template (including its baked-in few-shot
+exemplars), taken verbatim from the LegalBench source repository, not
+rephrased, so scores reflect the benchmark's intended evaluation format.
+
+\subsection{Results}
+
+\begin{table}[h]
+\centering
+\caption{General commonsense reasoning (zero-shot, acc\_norm). Not a legal
+claim -- a peer-comparison reference point against other small models.}
+\label{tab:general}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Task} & \textbf{125M} & \textbf{500M} \\
+\midrule
+HellaSwag & 29.4\% & \textbf{32.4\%} \\
+ARC-Easy & 41.7\% & \textbf{44.5\%} \\
+PIQA & \textbf{60.2\%} & 59.6\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{MMLU legal subsets (zero-shot, acc). Random-chance floor for
+4-choice is 25\%; both models sit at or near it.}
+\label{tab:mmlu}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Subject} & \textbf{125M} & \textbf{500M} \\
+\midrule
+professional\_law & 24.6\% & 24.7\% \\
+jurisprudence & \textbf{30.6\%} & 25.9\% \\
+international\_law & \textbf{26.5\%} & 24.0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{CaseHOLD (5-way multiple choice; random-chance floor is 20\%).
+Already excluded from both models' pretraining data via 13-gram
+decontamination, so no contamination concern applies here.}
+\label{tab:casehold}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Metric} & \textbf{125M} & \textbf{500M} \\
+\midrule
+acc & 11.9\% & 12.1\% \\
+acc\_norm & 18.4\% & 19.9\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The 125M model scores \emph{below} the 20\% random-chance floor on
+CaseHOLD's acc\_norm metric. Genuinely selecting the correct legal
+holding among five plausible-sounding alternatives is a categorically
+different, harder skill than the open-book extraction and classification
+these models perform well at; we take this as the bluntest possible
+external confirmation of a capability boundary this project's own
+model cards had already stated qualitatively.
+
+\begin{table}[h]
+\centering
+\caption{LegalBench, 12-task contract-focused subset (zero-shot,
+binary yes/no, 50\% chance floor). Official LegalBench prompts, verbatim.}
+\label{tab:legalbench}
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Task} & \textbf{125M} & \textbf{500M} \\
+\midrule
+citation\_prediction\_classification & \textbf{54.6\%} & 50.0\% \\
+consumer\_contracts\_qa & 43.2\% & \textbf{58.6\%} \\
+contract\_nli\_confidentiality\_of\_agreement & 47.6\% & 50.0\% \\
+contract\_nli\_explicit\_identification & \textbf{45.9\%} & 23.9\% \\
+contract\_nli\_limited\_use & \textbf{61.5\%} & 60.6\% \\
+contract\_nli\_no\_licensing & 59.9\% & \textbf{70.4\%} \\
+contract\_nli\_notice\_on\_compelled\_disclosure & 60.6\% & \textbf{66.2\%} \\
+contract\_nli\_permissible\_copy & 28.7\% & \textbf{37.9\%} \\
+contract\_nli\_return\_of\_confidential\_information & \textbf{54.6\%} & 50.0\% \\
+contract\_nli\_sharing\_with\_employees & 50.0\% & \textbf{53.5\%} \\
+contract\_nli\_survival\_of\_obligations & 61.2\% & \textbf{71.3\%} \\
+contract\_qa & \textbf{48.8\%} & 47.5\% \\
+\midrule
+\textbf{Mean across 12 tasks} & 51.4\% & \textbf{53.3\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The LegalBench subset shows a genuinely mixed picture: the 500M model
+wins 6 of 12 tasks, the 125M model wins 4, and 2 are effectively tied,
+consistent with the paired-comparison finding in
+Section~\ref{sec:paired} that scale helps on net without being uniformly
+better. One result merits a caveat before being read as a real capability
+gap: on \texttt{contract\_nli\_explicit\_identification}, the 500M model
+scores 23.9\%, below its own 50\% chance floor, while the 125M model
+scores 45.9\%. With $n=109$ examples on a single task, we consider this
+plausibly a prompt-format sensitivity rather than a demonstrated
+capability regression, and flag it for follow-up rather than drawing a
+conclusion from it in isolation.
+
+\section{A Contamination Case Study: Legal Text Needs a Stricter Check}
+\label{sec:contamination-method}
+
+Unlike CaseHOLD and LexGLUE, which were excluded from this project's
+pretraining corpus by design, LegalBench was never checked for overlap
+with the pretraining data before this evaluation. We report the full
+investigation because we believe the methodological lesson generalizes
+beyond this specific project: naive $n$-gram contamination checks are
+too sensitive for legal text specifically, and the standard fix (a
+longer $n$) is necessary but not sufficient without also attributing
+each surviving hit back to its source.
+
+\subsection{A naive check produces an implausible result}
+
+Following the same method and threshold this project already uses for
+CaseHOLD/LexGLUE decontamination (13-word $n$-gram overlap, 64-core
+parallel scan across the full $\sim$78GB cleaned pretraining corpus), we
+built a contamination set from all 12 selected LegalBench tasks' train
+and test splits (1{,}853 documents, 120{,}604 unique 13-grams) and
+scanned every source. The result was 8{,}712 overlapping lines across 75
+of 76 shard files, spanning every one of the five pretraining sources --
+including plain educational web text, which has no obvious reason to
+overlap with contract clause data at all. This was too widespread to
+trust at face value.
+
+\subsection{Inspection: generic legal boilerplate, not leaked test data}
+
+Rather than accept or reject the result on its aggregate count, we
+located and read the actual matched 13-word spans. Every sampled hit was
+generic, widely recurring legal language: standard-of-review boilerplate
+that essentially every US appellate court recites verbatim in summary
+judgment appeals (\emph{``reviewing a motion for summary judgment we
+apply the same standard as the [trial court]''}); DMCA/Terms-of-Service
+disclaimer boilerplate reused across thousands of unrelated websites; and
+canonical precedent-citation language, such as the \emph{Harris
+v.\ United States} plain-view-doctrine holding, which any case discussing
+that doctrine quotes verbatim. None of these are evidence that a specific
+LegalBench document leaked into training -- they are evidence that legal
+writing recycles fixed phrases far more than general text does, which a
+blunt phrase-overlap check is not equipped to distinguish from genuine
+duplication.
+
+\subsection{A stricter threshold, plus provenance attribution}
+
+We re-ran the check requiring a 40-consecutive-word contiguous match --
+long enough that coincidental boilerplate reuse cannot plausibly produce
+it. This reduced the result to 356 hits, concentrated in a small number
+of files rather than spread across nearly all of them. We then attributed
+every surviving hit back to its specific source LegalBench document,
+rather than treating the count alone as a verdict:
+
+\begin{table}[h]
+\centering
+\caption{Attribution of the 356 strict (40-word) contamination hits.}
+\label{tab:contam}
+\begin{tabular}{lrl}
+\toprule
+\textbf{LegalBench task} & \textbf{Docs affected} & \textbf{What it actually is} \\
+\midrule
+\texttt{consumer\_contracts\_qa} & 3 / 396 & Facebook's real, public Terms of Service \\
+\texttt{contract\_nli\_limited\_use} & 1 / 208 & A standard, widely reused NDA template \\
+\texttt{citation\_prediction\_classification} & 1 / 108 & A real historic court opinion, present in \\
+ & & both datasets independently \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In total, 5 of 1{,}853 evaluated documents (0.27\%) show genuine
+long-run overlap, concentrated in 3 of the 12 tasks. Each is independently
+explainable by the nature of its source: a famous, widely-republished
+company Terms of Service document; a standard legal template reused
+across many real, unrelated contracts; and a historic court opinion that
+both LegalBench (whose \texttt{citation\_prediction\_classification} task
+literally consists of real historical case-law excerpts) and our
+pretraining corpus (built from the same public case-law record)
+independently and unavoidably contain. None of this constitutes narrow
+test-set leakage in the sense that matters for benchmark validity, and
+none of it is large enough, at under 1\% of any single task's examples,
+to move the reported accuracy outside that task's own margin of error.
+We consider the LegalBench results in Table~\ref{tab:legalbench} safe to
+report on this basis.
+
+We surface this as a general methodological point: legal text's much
+higher natural rate of verbatim phrase reuse -- case law quoting
+precedent, contracts reusing boilerplate clauses, companies republishing
+near-identical Terms of Service -- means a contamination-checking
+threshold tuned for general text will systematically over-flag legal
+corpora. A longer contiguous-match requirement combined with per-hit
+source attribution, rather than raw overlap counts alone, is necessary to
+get a trustworthy signal in this domain.
+
+\section{Discussion}
+
+Across both the in-house and external evaluations, a single organizing
+finding recurs: these models are a real, usable capability when given a
+source passage to work from, and are not a reliable source of legal
+knowledge or reasoning from parametric memory alone. This is consistent
+with, and adds an external benchmark confirmation to, the capacity-ceiling
+argument in \citet{allenzhu2024physics} -- a 528.5M-parameter model can
+store at most on the order of 132MB of compressible knowledge, shared
+across grammar, style, and every fact it has ever seen -- and the
+repetition-dependent memorization curve in \citet{carlini2022quantifying},
+which predicts that facts appearing only once or twice in a multi-billion-
+token pretraining corpus will be recalled correctly only a small fraction
+of the time, exactly the regime most specific legal facts fall into.
+
+We deliberately scope this paper to purely parametric capability, without
+retrieval augmentation \citep{lewis2020rag}. This is not a claim that
+retrieval would not help -- the open-book/closed-book gap documented
+throughout this paper is, if anything, a direct argument \emph{for}
+retrieval as a natural next step, since it would convert every closed-book
+question into the open-book format these models already handle well. We
+leave that extension, and a systematic comparison against it, to future
+work, consistent with the recent, larger-scale exploration of
+retrieval-augmented small legal models in \citet{vaddi2026smallmodels}.
+
+\section{Limitations}
+
+\begin{itemize}[nosep]
+  \item Both models are evaluated against a single held-out validation
+    split per model; we do not report cross-validation or multi-seed
+    variance, so small differences (a few percentage points) between the
+    two model sizes on individual tasks should not be over-interpreted.
+  \item The LegalBench subset covers 12 of the benchmark's 162 tasks,
+    selected for scoring-format and domain fit rather than
+    comprehensiveness; results should not be read as a full LegalBench
+    evaluation.
+  \item SCOTUS, ECtHR, and EUR-LEX (also part of LexGLUE) were not
+    evaluated at all, due to the context-length mismatch described in
+    Section~\ref{sec:external}, not because they are uninteresting.
+  \item Our contamination check is $n$-gram-based; it would not detect
+    paraphrased or semantically equivalent (but lexically different)
+    leakage. We consider this an acceptable limitation given the
+    combination of a strict contiguous-match threshold and manual
+    per-hit provenance review, but note it as a real methodological gap.
+  \item Both pretraining runs are single training runs at their
+    respective configurations; we do not report variance across
+    independent reruns of the same recipe.
+  \item Both models are trained on English-language, US-centric legal and
+    financial text; none of the findings here should be assumed to
+    transfer to other jurisdictions or languages.
+\end{itemize}
+
+\section{Conclusion}
+
+We built two from-scratch small language models for legal and financial
+text, found and fixed a real data-mixing regression and a real
+fine-tuning failure mode along the way, and then subjected the resulting
+models to external, accepted benchmark evaluation rather than relying
+solely on our own test set. The result is a consistent, externally
+validated picture: a genuine, narrow capability at open-book contract
+analysis, and an equally genuine absence of reliable closed-book legal
+knowledge or reasoning at this parameter count. We release both models,
+the fine-tuning recipe, an in-browser deployment, and all evaluation code
+so that these specific, quantified claims -- including the ones that do
+not flatter the larger model -- can be independently checked rather than
+taken on faith.
+
+\section*{Reproducibility}
+
+Model weights, the fine-tuning dataset recipe, ONNX exports for
+in-browser inference, and the full pretraining/evaluation codebase
+(including every custom benchmark task configuration and contamination-
+check script described in this paper) are available at
+\url{https://github.com/DeependraVerma/legal-slm-125M}. Model cards with
+full evaluation tables are hosted at
+\url{https://huggingface.co/DeependraVerma}.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}
